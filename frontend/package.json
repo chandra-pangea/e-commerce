@@ -24,8 +24,7 @@
     "lint:check": "eslint 'src/**/*.{ts,tsx,js,jsx}'",
     "format": "prettier --write 'src/**/*.{ts,tsx,js,jsx,json,css,scss,md}'",
     "format:check": "prettier --check 'src/**/*.{ts,tsx,js,jsx,json,css,scss,md}'",
-    "prepare": "husky install",
-    "remove-logs": "replace-in-file 'console\\.log\\(.*\\);?' '' src/**/*.{ts,tsx,js,jsx}"
+    "prepare": "husky install"
   },
   "browserslist": {
     "production": [
@@ -41,7 +40,6 @@
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
-      "npm run remove-logs",
       "eslint --fix",
       "prettier --write",
       "git add"
