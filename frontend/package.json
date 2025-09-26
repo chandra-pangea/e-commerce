@@ -21,7 +21,8 @@
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0"
+    "lint": "eslint 'src/**/*.{js,jsx,ts,tsx}' --max-warnings=0",
+    "remove-logs": "replace-in-file 'console\\.log\\(.*\\);?' '' src/**/*.{js,jsx,ts,tsx}"
   },
   "browserslist": {
     "production": [
@@ -43,6 +44,7 @@
   },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
+      "npm run remove-logs",
       "eslint --fix",
       "prettier --write",
       "git add"
@@ -62,6 +64,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.1",
     "prettier": "^3.6.2",
+    "replace-in-file": "^8.3.0",
     "typescript": "^4.9.5"
   }
 }
