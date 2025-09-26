@@ -36,12 +36,6 @@
       "last 1 safari version"
     ]
   },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "npm run lint"
-    }
-  },
   "lint-staged": {
     "src/**/*.{js,jsx,ts,tsx}": [
       "npm run remove-logs",
