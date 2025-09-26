@@ -1,6 +1,7 @@
 import './App.css';
 function App() {
     console.log("hello from app.tsx");
+    console.log("sds")
     return (
         <div className= "App" >
         <header className="App-header" >
