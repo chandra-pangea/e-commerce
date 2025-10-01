@@ -1,5 +1,5 @@
 // src/store.ts
-import { configureStore, UnknownAction } from '@reduxjs/toolkit';
+import { configureStore } from '@reduxjs/toolkit';
 import authSlice from './features/authSlice';
 
 export const store = configureStore({

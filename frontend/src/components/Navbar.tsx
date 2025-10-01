@@ -1,18 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useCart } from '../providers/CartContext';
+import { ShoppingCart } from 'lucide-react';
 
 const Navbar = () => {
+  const { totalItems } = useCart();
+
   return (
     <nav className="bg-white shadow flex items-center justify-between px-8 py-4 sticky top-0 z-50 border-b border-red-600">
       <Link to="/" className="text-2xl font-bold text-red-600">
         E-Shop
       </Link>
       <div className="flex gap-6 items-center">
-        <Link to="/products" className="hover:text-red-600 font-medium">
-          Products
-        </Link>
-        <Link to="/cart" className="hover:text-red-600 font-medium">
-          Cart
+        <Link to="/cart" className="hover:text-red-600 font-medium relative">
+          <ShoppingCart className="w-6 h-6" />
+          {totalItems > 0 && (
+            <span className="absolute -top-2 -right-2 bg-red-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+              {totalItems}
+            </span>
+          )}
         </Link>
         <Link to="/wishlist" className="hover:text-red-600 font-medium">
           Wishlist
@@ -33,4 +39,5 @@ const Navbar = () => {
     </nav>
   );
 };
+
 export default Navbar;
