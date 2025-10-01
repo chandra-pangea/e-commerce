@@ -1,4 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import ProtectedRoute from './ProtectedRoute';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -16,9 +18,14 @@ import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
   return (
-    <>
-      <Navbar />
-      <main className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 p-0">
+    <div className="flex flex-col min-h-screen bg-gradient-to-br from-red-50 to-white">
+      {/* 🔹 Navbar (sticky at top) */}
+      <header className="sticky top-0 z-50 shadow-md">
+        <Navbar />
+      </header>
+
+      {/* 🔹 Main (takes full remaining height) */}
+      <main className="flex-1 bg-gradient-to-br from-red-50 to-white">
         <div className="max-w-7xl mx-auto">
           <Routes>
             {/* 🔹 Public Routes */}
@@ -132,8 +139,21 @@ function App() {
           </Routes>
         </div>
       </main>
-      <Footer />
-    </>
+      <footer className="mt-auto">
+        <Footer />
+      </footer>
+
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+      />
+    </div>
   );
 }
 
