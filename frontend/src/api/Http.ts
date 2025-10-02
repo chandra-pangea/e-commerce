@@ -1,15 +1,40 @@
 // api/http.ts
 import axios from 'axios';
 
-const api = axios.create({
-  baseURL: process.env.REACT_APP_API_BASE_URL,
-  withCredentials: true,
+const baseURL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+
+const Http = axios.create({
+  baseURL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
-export const get = (url: string) => api.get(url).then((res) => res.data);
-export const post = (url: string, data?: any) => api.post(url, data).then((res) => res.data);
-export const put = (url: string, data?: any) => api.put(url, data).then((res) => res.data);
-export const patch = (url: string, data?: any) => api.patch(url, data).then((res) => res.data);
-export const del = (url: string) => api.delete(url).then((res) => res.data);
+// Add token to requests if available
+Http.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
-export default api;
+// Handle token expiration
+Http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  },
+);
+
+// Export HTTP methods
+export const get = (url: string) => Http.get(url);
+export const post = (url: string, data: any) => Http.post(url, data);
+export const put = (url: string, data: any) => Http.put(url, data);
+export const del = (url: string) => Http.delete(url);
+
+export default Http;

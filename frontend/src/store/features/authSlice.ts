@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { get, post } from '../../api/Http';
+import Http from '../../api/Http';
 
 export interface User {
   id: string;
@@ -22,8 +22,8 @@ const initialState: AuthState = {
 
 export const checkAuth = createAsyncThunk('auth/checkAuth', async (_, thunkAPI) => {
   try {
-    const user = await get('/auth/me');
-    return user;
+    const response = await Http.get('/auth/me');
+    return response.data;
   } catch (err: any) {
     return thunkAPI.rejectWithValue(err.message || 'Not authenticated');
   }
@@ -33,8 +33,8 @@ export const login = createAsyncThunk(
   'auth/login',
   async ({ email, password }: { email: string; password: string }, thunkAPI) => {
     try {
-      const user = await post('/auth/login', { email, password });
-      return user;
+      const response = await Http.post('/auth/login', { email, password });
+      return response.data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.message || 'Login failed');
     }
@@ -48,8 +48,8 @@ export const register = createAsyncThunk(
     thunkAPI,
   ) => {
     try {
-      const user = await post('/auth/register', { name, email, password });
-      return user;
+      const response = await Http.post('/auth/register', { name, email, password });
+      return response.data;
     } catch (err: any) {
       return thunkAPI.rejectWithValue(err.message || 'Registration failed');
     }
@@ -58,7 +58,7 @@ export const register = createAsyncThunk(
 
 export const logout = createAsyncThunk('auth/logout', async (_, thunkAPI) => {
   try {
-    await post('/auth/logout');
+    await Http.post('/auth/logout');
     return null;
   } catch (err: any) {
     return thunkAPI.rejectWithValue(err.message || 'Logout failed');
