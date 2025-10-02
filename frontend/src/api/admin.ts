@@ -8,7 +8,28 @@ export const blockUser = async (id: number) => {
 };
 
 export const getAllOrders = async () => {
-  return { orders: [{ id: 123, status: 'pending', amount: 200 }] };
+  return {
+    orders: [
+      {
+        id: 123,
+        status: 'pending',
+        amount: 200,
+        items: [{ id: 1, name: 'Product 1', qty: 2 }],
+        paymentStatus: 'paid',
+        deliveryStatus: 'pending',
+        createdAt: '2025-10-02',
+      },
+      {
+        id: 124,
+        status: 'delivered',
+        amount: 150,
+        items: [{ id: 2, name: 'Product 2', qty: 1 }],
+        paymentStatus: 'paid',
+        deliveryStatus: 'delivered',
+        createdAt: '2025-10-01',
+      },
+    ],
+  };
 };
 
 export const updateOrderStatus = async (id: number, status: string) => {
