@@ -8,7 +8,7 @@ interface ProductCardProps {
     name: string;
     price: number;
     description: string;
-    images: string[];
+    images?: string[];
     rating?: number;
     stock?: number;
   };
@@ -23,7 +23,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Product Image */}
       <div className="relative w-full pt-[100%] mb-4">
         <img
-          src={product.images[0]}
+          src={product.images?.[0] || '/logo192.png'} // Fallback to default image
           alt={product.name}
           className="absolute top-0 left-0 w-full h-full object-contain p-4 group-hover:scale-105 transition-transform duration-300"
         />

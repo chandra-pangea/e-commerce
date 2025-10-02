@@ -3,135 +3,107 @@ export interface Product {
   name: string;
   price: number;
   description: string;
+  category: string;
+  images?: string[];
+  stock?: number;
+}
+
+export interface ProductsParams {
+  page?: number;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 export const products: Product[] = [
   {
     id: 1,
-    name: 'Phone XL',
-    price: 799,
-    description: 'A large phone with one of the best screens',
+    name: 'iPhone 15 Pro',
+    price: 999,
+    description: 'The latest iPhone with amazing camera capabilities',
+    category: 'Phones',
+    images: ['/logo192.png'],
+    stock: 10,
   },
   {
     id: 2,
-    name: 'Phone Mini',
-    price: 699,
-    description: 'A great phone with one of the best cameras',
+    name: 'MacBook Pro 16"',
+    price: 2499,
+    description: 'Powerful laptop for professionals',
+    category: 'Laptops',
+    images: ['/logo192.png'],
+    stock: 5,
   },
   {
-    id: 1,
-    name: 'Phone XL',
-    price: 799,
-    description: 'A large phone with one of the best screens',
+    id: 3,
+    name: 'AirPods Pro',
+    price: 249,
+    description: 'Premium wireless earbuds with noise cancellation',
+    category: 'Accessories',
+    images: ['/logo192.png'],
+    stock: 15,
   },
   {
-    id: 2,
-    name: 'Phone Mini',
-    price: 699,
-    description: 'A great phone with one of the best cameras',
+    id: 4,
+    name: 'iPad Air',
+    price: 599,
+    description: 'Versatile tablet for work and play',
+    category: 'Tablets',
+    images: ['/logo192.png'],
+    stock: 8,
   },
   {
-    id: 1,
-    name: 'Phone XL',
-    price: 799,
-    description: 'A large phone with one of the best screens',
+    id: 5,
+    name: 'Apple Watch Series 8',
+    price: 399,
+    description: 'Advanced health and fitness tracking',
+    category: 'Wearables',
+    images: ['/logo192.png'],
+    stock: 12,
   },
   {
-    id: 2,
-    name: 'Phone Mini',
-    price: 699,
-    description: 'A great phone with one of the best cameras',
+    id: 6,
+    name: 'Samsung Galaxy S23',
+    price: 899,
+    description: 'Premium Android smartphone',
+    category: 'Phones',
+    images: ['/logo192.png'],
+    stock: 7,
   },
 ];
 
 // Dummy Products API for frontend only
-export const getProducts = async (params: any) => {
+export const getProducts = async (params: ProductsParams) => {
+  const { page = 1, category, minPrice, maxPrice } = params;
+  const itemsPerPage = 9;
+
+  // Filter products based on criteria
+  let filteredProducts = [...products];
+
+  if (category) {
+    filteredProducts = filteredProducts.filter((p) => p.category === category);
+  }
+
+  if (typeof minPrice === 'number') {
+    filteredProducts = filteredProducts.filter((p) => p.price >= minPrice);
+  }
+
+  if (typeof maxPrice === 'number') {
+    filteredProducts = filteredProducts.filter((p) => p.price <= maxPrice);
+  }
+
+  // Calculate pagination
+  const startIndex = (page - 1) * itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, startIndex + itemsPerPage);
+
   return {
-    products: [
-      {
-        id: 1,
-        name: 'Product 1',
-        price: 100,
-        category: 'A',
-        stock: 10,
-        rating: 4.5,
-        images: ['/logo192.png'],
-        description: 'Desc 1',
-      },
-      {
-        id: 2,
-        name: 'Product 2',
-        price: 200,
-        category: 'B',
-        stock: 0,
-        rating: 3.8,
-        images: ['/logo192.png'],
-        description: 'Desc 2',
-      },
-      {
-        id: 1,
-        name: 'Product 1',
-        price: 100,
-        category: 'A',
-        stock: 10,
-        rating: 4.5,
-        images: ['/logo192.png'],
-        description: 'Desc 1',
-      },
-      {
-        id: 2,
-        name: 'Product 2',
-        price: 200,
-        category: 'B',
-        stock: 0,
-        rating: 3.8,
-        images: ['/logo192.png'],
-        description: 'Desc 2',
-      },
-      {
-        id: 1,
-        name: 'Product 1',
-        price: 100,
-        category: 'A',
-        stock: 10,
-        rating: 4.5,
-        images: ['/logo192.png'],
-        description: 'Desc 1',
-      },
-      {
-        id: 2,
-        name: 'Product 2',
-        price: 200,
-        category: 'B',
-        stock: 0,
-        rating: 3.8,
-        images: ['/logo192.png'],
-        description: 'Desc 2',
-      },
-      {
-        id: 1,
-        name: 'Product 1',
-        price: 100,
-        category: 'A',
-        stock: 10,
-        rating: 4.5,
-        images: ['/logo192.png'],
-        description: 'Desc 1',
-      },
-      {
-        id: 2,
-        name: 'Product 2',
-        price: 200,
-        category: 'B',
-        stock: 0,
-        rating: 3.8,
-        images: ['/logo192.png'],
-        description: 'Desc 2',
-      },
-    ],
-    total: 2,
+    products: paginatedProducts,
+    total: filteredProducts.length,
+    page,
+    totalPages: Math.ceil(filteredProducts.length / itemsPerPage),
   };
 };
+
 export const getProductDetails = async (id: number) => {
   return {
     id,
