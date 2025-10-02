@@ -49,6 +49,9 @@ const ProductsList: React.FC = () => {
     description: '',
   });
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadErrors, setUploadErrors] = useState<ImageValidationError[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -127,21 +130,62 @@ const ProductsList: React.FC = () => {
       images: [],
       description: product.description || '',
     });
-    setImagePreview(product.images?.[0] || '');
+    setImagePreviews(product.images || []);
     setIsModalOpen(true);
+    setUploadErrors([]);
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setFormData({ ...formData, images: [file] });
-      setImagePreview(URL.createObjectURL(file));
+  const validateFile = (file: File): string | null => {
+    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
+      return `Invalid file type. Allowed types: ${ALLOWED_FILE_TYPES.map((type) => type.split('/')[1]).join(', ')}`;
     }
+    if (file.size > MAX_FILE_SIZE) {
+      return `File size exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit`;
+    }
+    return null;
+  };
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.length) {
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadErrors([]);
+    const newFiles: File[] = Array.from(e.target.files);
+    const currentFiles = [...formData.images];
+    const errors: ImageValidationError[] = [];
+    const validFiles: File[] = [];
+    const previews: string[] = [...imagePreviews];
+
+    for (const file of newFiles) {
+      const error = validateFile(file);
+      if (error) {
+        errors.push({ file, error });
+      } else if (currentFiles.length + validFiles.length < MAX_FILES) {
+        validFiles.push(file);
+        previews.push(URL.createObjectURL(file));
+      } else {
+        errors.push({ file, error: `Maximum ${MAX_FILES} images allowed` });
+      }
+    }
+
+    if (errors.length) {
+      setUploadErrors(errors);
+      errors.forEach(({ error }) => toast.error(error));
+    }
+
+    if (validFiles.length) {
+      setFormData({ ...formData, images: [...currentFiles, ...validFiles] });
+      setImagePreviews(previews);
+    }
+
+    setIsUploading(false);
   };
 
   const ProductModal = () => (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white p-6 rounded-lg w-96 max-w-[90%]">
+      <div className="bg-white p-6 rounded-lg w-[32rem] max-w-[90%] max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
           {editingProduct ? 'Edit Product' : 'Add New Product'}
         </h3>
@@ -198,37 +242,55 @@ const ProductsList: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Product Image</label>
-            <div className="flex items-center space-x-4">
-              {imagePreview && (
-                <div className="relative">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Product Images
+              <span className="text-gray-500 ml-1">
+                (Max {MAX_FILES} images, {MAX_FILE_SIZE / 1024 / 1024}MB each)
+              </span>
+            </label>
+            <div className="flex flex-wrap gap-4">
+              {imagePreviews.map((preview, index) => (
+                <div key={preview} className="relative">
                   <img
-                    src={imagePreview}
-                    alt="Product preview"
+                    src={preview}
+                    alt={`Product preview ${index + 1}`}
                     className="h-24 w-24 object-cover rounded-md"
                   />
                   <button
                     type="button"
                     onClick={() => {
-                      setFormData({ ...formData, images: [] });
-                      setImagePreview('');
+                      const newImages = formData.images.filter((_, i) => i !== index);
+                      const newPreviews = imagePreviews.filter((_, i) => i !== index);
+                      setFormData({ ...formData, images: newImages });
+                      setImagePreviews(newPreviews);
                     }}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                   >
                     ×
                   </button>
                 </div>
+              ))}
+              {formData.images.length < MAX_FILES && (
+                <label className="cursor-pointer flex items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-md hover:border-gray-400">
+                  <span className="text-gray-600">+</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    onChange={handleImageChange}
+                    accept={ALLOWED_FILE_TYPES.join(',')}
+                    multiple
+                    disabled={isUploading}
+                  />
+                </label>
               )}
-              <label className="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                <span>{imagePreview ? 'Change Image' : 'Upload Image'}</span>
-                <input
-                  type="file"
-                  className="hidden"
-                  onChange={handleImageChange}
-                  accept="image/*"
-                />
-              </label>
             </div>
+            {uploadErrors.length > 0 && (
+              <div className="mt-2 text-sm text-red-600">
+                {uploadErrors.map((error, index) => (
+                  <div key={index}>{error.error}</div>
+                ))}
+              </div>
+            )}
           </div>
           <div className="flex justify-end gap-4 mt-6">
             <button
@@ -236,7 +298,8 @@ const ProductsList: React.FC = () => {
               onClick={() => {
                 setIsModalOpen(false);
                 setEditingProduct(null);
-                setImagePreview('');
+                setImagePreviews([]);
+                setUploadErrors([]);
               }}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
             >
@@ -244,9 +307,10 @@ const ProductsList: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              disabled={isUploading}
+              className={`px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed`}
             >
-              {editingProduct ? 'Update' : 'Create'}
+              {isUploading ? 'Uploading...' : editingProduct ? 'Update' : 'Create'}
             </button>
           </div>
         </form>
