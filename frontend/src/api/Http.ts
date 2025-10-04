@@ -1,40 +1,35 @@
-// api/http.ts
-import axios from 'axios';
 
 const baseURL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
 
-const Http = axios.create({
-  baseURL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+const api = axios.create({
+  baseURL: baseURL,
+  withCredentials: true, // ✅ ensures cookies are sent
 });
 
-// Add token to requests if available
-Http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+export const get = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  const response: AxiosResponse<T> = await api.get(url, config);
+  return response.data;
+};
 
-// Handle token expiration
-Http.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  },
-);
+export const post = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  const response: AxiosResponse<T> = await api.post(url, data, config);
+  return response.data;
+};
 
-// Export HTTP methods
-export const get = (url: string) => Http.get(url);
-export const post = (url: string, data: any) => Http.post(url, data);
-export const put = (url: string, data: any) => Http.put(url, data);
-export const del = (url: string) => Http.delete(url);
+export const put = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  const response: AxiosResponse<T> = await api.put(url, data, config);
+  return response.data;
+};
 
-export default Http;
+export const patch = async <T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> => {
+  const response: AxiosResponse<T> = await api.patch(url, data, config);
+  return response.data;
+};
+
+export const del = async <T>(url: string, config?: AxiosRequestConfig): Promise<T> => {
+  const response: AxiosResponse<T> = await api.delete(url, config);
+  return response.data;
+};
+
+export default api;

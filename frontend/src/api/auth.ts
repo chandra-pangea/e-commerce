@@ -1,5 +1,4 @@
-import { jwtDecode } from 'jwt-decode';
-import Http from './Http';
+import { get, post } from './Http'; // ✅ use centralized axios wrappers
 
 interface GoogleUser {
   email: string;
@@ -9,7 +8,7 @@ interface GoogleUser {
 }
 
 interface AuthResponse {
-  token: string;
+  token?: string; // might be set in cookies, so optional
   user: {
     id: string;
     name: string;
@@ -27,33 +26,21 @@ interface RegisterData {
 }
 
 export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await Http.post('/api/auth/login', { email, password });
-  return response.data;
+  return await post<AuthResponse>('/auth/login', { email, password });
 };
 
 export const googleLogin = async (credential: string): Promise<AuthResponse> => {
-  const response = await Http.post('/api/auth/google', { credential });
-  return response.data;
+  return await post<AuthResponse>('/auth/google', { credential });
 };
 
 export const register = async (data: RegisterData): Promise<AuthResponse> => {
-  const response = await Http.post('/api/auth/register', data);
-  return response.data;
+  return await post<AuthResponse>('/auth/register', data);
 };
 
-export const forgotPassword = async (email: string) => {
-  return { success: true };
+export const getUserDetails = async (): Promise<AuthResponse> => {
+  return await get<AuthResponse>('/auth/me');
 };
 
-export const resetPassword = async (token: string, password: string) => {
-  return { success: true };
-};
-
-export const updateProfile = async (data: any) => {
-  return { success: true, user: { ...data } };
-};
-
-export const getCurrentUser = async () => {
-  const response = await Http.get('/api/auth/me');
-  return response.data;
+export const logoutUser = async (): Promise<{ message: string }> => {
+  return await post<{ message: string }>('/auth/logout');
 };
