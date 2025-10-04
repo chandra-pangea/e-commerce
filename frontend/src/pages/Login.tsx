@@ -23,7 +23,6 @@ const Login: React.FC = () => {
   ) => {
     try {
       const response = await apiLogin(values.email, values.password);
-      localStorage.setItem('token', response.token);
       login(response.user);
       toast.success('Login successful!');
       navigate('/');
@@ -37,7 +36,6 @@ const Login: React.FC = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       const response = await googleLogin(credentialResponse.credential);
-      localStorage.setItem('token', response.token);
       login(response.user);
       toast.success('Login successful!');
       navigate('/');
