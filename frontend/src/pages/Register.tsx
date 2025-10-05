@@ -1,11 +1,11 @@
 import React from 'react';
 import { register as apiRegister, googleLogin } from '../api/auth';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../providers/AuthContext';
 import { toast } from 'react-toastify';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../hooks/useAuth';
 
 const Register: React.FC = () => {
   const navigate = useNavigate();

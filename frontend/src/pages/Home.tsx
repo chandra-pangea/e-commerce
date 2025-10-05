@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { getProducts } from '../api/products';
+import { getCategories, getProducts } from '../api/products';
 import ProductCard from '../components/ProductCard';
 import { ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
@@ -8,8 +8,6 @@ interface FilterState {
   minPrice: string;
   maxPrice: string;
 }
-
-const categories = ['Phones', 'Laptops', 'Accessories', 'Tablets', 'Wearables'];
 
 const Home: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -22,6 +20,7 @@ const Home: React.FC = () => {
     minPrice: '',
     maxPrice: '',
   });
+  const [categories, setCategories] = useState<string[]>([]);
 
   const loadProducts = async () => {
     setLoading(true);
@@ -41,7 +40,16 @@ const Home: React.FC = () => {
     }
   };
 
+  const loadCategories = async () => {
+    try {
+      const response = await getCategories();
+      setCategories(response);
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+    }
+  };
   useEffect(() => {
+    loadCategories();
     loadProducts();
   }, [currentPage, filters]);
 

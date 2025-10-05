@@ -1,11 +1,11 @@
 import React from 'react';
 import { login as apiLogin, googleLogin } from '../api/auth';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../providers/AuthContext';
 import { toast } from 'react-toastify';
 import { Formik, Form, Field, ErrorMessage } from 'formik';
 import * as Yup from 'yup';
 import { GoogleLogin } from '@react-oauth/google';
+import { useAuth } from '../hooks/useAuth';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ const Login: React.FC = () => {
   ) => {
     try {
       const response = await apiLogin(values.email, values.password);
-      login(response.user);
+      login(response.user as any);
       toast.success('Login successful!');
       navigate('/');
     } catch (error) {
@@ -36,7 +36,7 @@ const Login: React.FC = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       const response = await googleLogin(credentialResponse.credential);
-      login(response.user);
+      login(response.user as any);
       toast.success('Login successful!');
       navigate('/');
     } catch (error) {

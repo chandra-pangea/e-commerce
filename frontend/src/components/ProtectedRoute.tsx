@@ -1,34 +1,32 @@
-import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../providers/AuthContext';
+import React, { JSX } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
 interface ProtectedRouteProps {
-  children: React.ReactNode;
+  children: JSX.Element;
   role?: 'USER' | 'ADMIN';
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, role }) => {
-  const { user, isAuthenticated, loading } = useAuth();
-  const location = useLocation();
+  const { user, loading, isAuthenticated } = useAuth();
 
-  // Show loading spinner only on initial load
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-red-600"></div>
       </div>
     );
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (role && user?.role !== role) {
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  return children;
 };
 
 export default ProtectedRoute;

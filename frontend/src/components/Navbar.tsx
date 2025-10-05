@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../providers/AuthContext';
 import { useCart } from '../providers/CartContext';
 import { ShoppingCart } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
@@ -11,7 +11,7 @@ const Navbar = () => {
   const handleLogout = () => {
     logout();
   };
-
+  console.log(user);
   return (
     <nav className="bg-white shadow flex items-center justify-between px-8 py-4 sticky top-0 z-50 border-b border-red-600">
       <Link to="/" className="text-2xl font-bold text-red-600">

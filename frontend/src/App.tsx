@@ -16,17 +16,29 @@ import Orders from './pages/Orders';
 import AdminDashboard from './pages/AdminDashboard';
 import { CartProvider } from './providers/CartContext';
 import OrderDetails from './pages/OrderDetails';
-import { useAuth } from './providers/AuthContext';
-
-const PUBLIC_ROUTES = ['/', '/login', '/register', '/products'];
+import { useAuth } from './hooks/useAuth';
+import { useEffect } from 'react';
+import axios from 'axios';
 
 function App() {
-  const { isAuthenticated, loading } = useAuth();
-  const location = useLocation();
+  const { isAuthenticated, loading, setUser, user } = useAuth();
 
-  const isPublicRoute = PUBLIC_ROUTES.some(
-    (route) => location.pathname === route || location.pathname.startsWith('/products/'),
-  );
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const baseUrl = process.env.REACT_APP_API_BASE_URL;
+        const response = await axios.get(`${baseUrl}/auth/me`, { withCredentials: true });
+        const { user } = response.data;
+        setUser(user);
+      } catch (err) {
+        console.log();
+      }
+    };
+
+    if (!user) {
+      fetchUser();
+    }
+  }, [setUser]);
 
   if (loading) {
     return (
@@ -47,7 +59,6 @@ function App() {
           <main className="flex-1">
             <div className="max-w-7xl mx-auto">
               <Routes>
-                {/* Public Routes */}
                 <Route path="/" element={<Home />} />
                 <Route
                   path="/login"

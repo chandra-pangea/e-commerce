@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Star, ArrowLeft, Heart, Plus, Minus } from 'lucide-react';
 import { useCart } from '../providers/CartContext';
 import { toast } from 'react-toastify';
+import { useAuth } from '../hooks/useAuth';
 
 const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,9 +13,11 @@ const ProductDetails: React.FC = () => {
   const [product, setProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (id) {
+      console.log(id);
       getProductDetails(id).then(setProduct);
     }
   }, [id]);
@@ -26,11 +29,19 @@ const ProductDetails: React.FC = () => {
   };
 
   const handleAddToCart = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
     addToCart(product, quantity);
     toast.success('Added to cart!');
   };
 
   const handleBuyNow = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
     addToCart(product, quantity);
     navigate('/cart');
   };

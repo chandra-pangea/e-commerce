@@ -4,7 +4,7 @@ import { Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: {
-    id: number;
+    _id: number;
     name: string;
     price: number;
     description: string;
@@ -17,7 +17,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   return (
     <Link
-      to={`/products/${product.id}`}
+      to={`/products/${product._id}`}
       className="block bg-white rounded-xl shadow-md hover:shadow-lg p-6 group relative transition-all duration-300 border border-gray-100"
     >
       {/* Product Image */}
@@ -34,7 +34,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <h3 className="text-lg font-semibold text-gray-800 mb-1 line-clamp-1 group-hover:text-red-600 transition-colors duration-200">
           {product.name}
         </h3>
-        <p className="text-gray-600 text-sm mb-2 line-clamp-2">{product.description}</p>
+        <p className="text-gray-600 text-sm mb-2 line-clamp-5">{product.description}</p>
 
         <div className="mt-auto">
           <div className="flex items-baseline">

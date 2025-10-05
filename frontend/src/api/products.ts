@@ -27,11 +27,12 @@ export interface ProductsResponse {
 }
 
 export const getProducts = async (params: ProductsParams): Promise<ProductsResponse> => {
-  return await get<ProductsResponse>('/products', { params });
+  return await get<ProductsResponse>('/products/all', { params });
 };
 
 export const getProductDetails = async (id: string): Promise<Product> => {
-  return await get<Product>(`/products/${id}`);
+  console.log(id);
+  return await get<Product>(`/products/details/${id}`);
 };
 
 export const getCategories = async (): Promise<string[]> => {
