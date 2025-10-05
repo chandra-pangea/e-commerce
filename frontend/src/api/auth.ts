@@ -7,18 +7,17 @@ interface GoogleUser {
   sub: string;
 }
 
-interface AuthResponse {
-  token?: string; // might be set in cookies, so optional
+export interface AuthResponse {
   user: {
     id: string;
     name: string;
     email: string;
-    role: string;
+    role: 'USER' | 'ADMIN';
     picture?: string;
   };
 }
 
-interface RegisterData {
+export interface RegisterData {
   name: string;
   email: string;
   password: string;
@@ -37,10 +36,10 @@ export const register = async (data: RegisterData): Promise<AuthResponse> => {
   return await post<AuthResponse>('/auth/register', data);
 };
 
-export const getUserDetails = async (): Promise<AuthResponse> => {
+export const getCurrentUser = async (): Promise<AuthResponse> => {
   return await get<AuthResponse>('/auth/me');
 };
 
-export const logoutUser = async (): Promise<{ message: string }> => {
+export const logout = async (): Promise<{ message: string }> => {
   return await post<{ message: string }>('/auth/logout');
 };

@@ -6,7 +6,7 @@ import { useCart } from '../providers/CartContext';
 import { toast } from 'react-toastify';
 
 const ProductDetails: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<any>(null);
@@ -15,7 +15,7 @@ const ProductDetails: React.FC = () => {
 
   useEffect(() => {
     if (id) {
-      getProductDetails(Number(id)).then(setProduct);
+      getProductDetails(id).then(setProduct);
     }
   }, [id]);
 

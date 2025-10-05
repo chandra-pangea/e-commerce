@@ -4,26 +4,11 @@ import { toast } from 'react-toastify';
 import { Star, Package, Calendar } from 'lucide-react';
 import { getOrders, submitReview, cancelOrder } from '../api/orders';
 import ReviewForm from '../components/ReviewForm';
-
-interface OrderItem {
-  id: number;
-  name: string;
-  qty: number;
-}
-
-interface Order {
-  id: number;
-  status: string;
-  amount: number;
-  items: OrderItem[];
-  createdAt: string;
-  canCancel: boolean;
-  reviewed: boolean;
-}
+import type { OrderDetails } from '../interfaces/Order';
 
 const Orders: React.FC = () => {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [orders, setOrders] = useState<OrderDetails[]>([]);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -33,7 +18,7 @@ const Orders: React.FC = () => {
   const loadOrders = async () => {
     try {
       const response = await getOrders();
-      setOrders(response.orders);
+      setOrders(response.orders as OrderDetails[]);
     } catch (error) {
       toast.error('Failed to load orders');
     } finally {
@@ -41,7 +26,7 @@ const Orders: React.FC = () => {
     }
   };
 
-  const handleCancelOrder = async (orderId: number) => {
+  const handleCancelOrder = async (orderId: string) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) {
       return;
     }
@@ -68,6 +53,16 @@ const Orders: React.FC = () => {
     } catch (error) {
       toast.error('Failed to submit review');
     }
+  };
+
+  const renderOrderItems = (items: OrderDetails['items']) => {
+    return items.map((item) => (
+      <div key={item.id} className="flex justify-between items-center text-sm">
+        <span>
+          {item.product.name} × {item.quantity}
+        </span>
+      </div>
+    ));
   };
 
   if (loading) {
@@ -116,15 +111,7 @@ const Orders: React.FC = () => {
                 </span>
               </div>
 
-              <div className="space-y-2">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex justify-between items-center text-sm">
-                    <span>
-                      {item.name} × {item.qty}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <div className="space-y-2">{renderOrderItems(order.items)}</div>
 
               <div className="mt-4 pt-4 border-t">
                 <div className="flex justify-between items-center">

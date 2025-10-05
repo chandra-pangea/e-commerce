@@ -13,9 +13,9 @@ import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
-import OrderDetails from './pages/OrderDetails';
 import AdminDashboard from './pages/AdminDashboard';
 import { CartProvider } from './providers/CartContext';
+import OrderDetails from './pages/OrderDetails';
 
 function App() {
   return (

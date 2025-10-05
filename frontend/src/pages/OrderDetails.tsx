@@ -4,6 +4,7 @@ import { toast } from 'react-toastify';
 import { ArrowLeft, Truck, CreditCard, Star } from 'lucide-react';
 import { getOrderDetails, cancelOrder, submitReview } from '../api/orders';
 import ReviewForm from '../components/ReviewForm';
+import type { OrderDetails as IOrderDetails } from '../interfaces/Order';
 
 interface OrderItem {
   id: number;
@@ -11,22 +12,10 @@ interface OrderItem {
   qty: number;
 }
 
-interface OrderDetails {
-  id: number;
-  status: string;
-  amount: number;
-  items: OrderItem[];
-  paymentStatus: string;
-  deliveryStatus: string;
-  canCancel: boolean;
-  reviewed: boolean;
-  createdAt: string;
-}
-
-const OrderDetails: React.FC = () => {
+const OrderDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<OrderDetails | null>(null);
+  const [order, setOrder] = useState<IOrderDetails | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -39,8 +28,8 @@ const OrderDetails: React.FC = () => {
       if (!id) {
         return;
       }
-      const data = await getOrderDetails(Number(id));
-      setOrder(data);
+      const data = await getOrderDetails(id);
+      setOrder(data as IOrderDetails);
     } catch (error) {
       toast.error('Failed to load order details');
     } finally {
@@ -63,10 +52,10 @@ const OrderDetails: React.FC = () => {
   };
 
   const handleSubmitReview = async (review: { rating: number; comment: string }) => {
+    if (!order) {
+      return;
+    }
     try {
-      if (!order) {
-        return;
-      }
       await submitReview(order.id, review);
       toast.success('Thank you for your review!');
       setIsReviewModalOpen(false);
@@ -74,6 +63,30 @@ const OrderDetails: React.FC = () => {
     } catch (error) {
       toast.error('Failed to submit review');
     }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'shipped':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const renderOrderItems = () => {
+    return order?.items.map((item) => (
+      <div key={item.id} className="py-4 flex justify-between items-center">
+        <div>
+          <div className="font-medium">{item.product.name}</div>
+          <div className="text-gray-600">Quantity: {item.quantity}</div>
+        </div>
+      </div>
+    ));
   };
 
   if (loading) {
@@ -121,15 +134,7 @@ const OrderDetails: React.FC = () => {
             <Truck className="w-5 h-5 text-red-600 mr-2" />
             <span className="font-semibold">Delivery Status</span>
           </div>
-          <span
-            className={`px-3 py-1 rounded ${
-              order.deliveryStatus === 'delivered'
-                ? 'bg-green-100 text-green-800'
-                : order.deliveryStatus === 'cancelled'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-yellow-100 text-yellow-800'
-            }`}
-          >
+          <span className={`px-3 py-1 rounded ${getStatusColor(order.deliveryStatus)}`}>
             {order.deliveryStatus.charAt(0).toUpperCase() + order.deliveryStatus.slice(1)}
           </span>
         </div>
@@ -159,16 +164,7 @@ const OrderDetails: React.FC = () => {
       {/* Order Items */}
       <div className="mb-8">
         <h3 className="text-lg font-semibold mb-4">Order Items</h3>
-        <div className="divide-y">
-          {order.items.map((item) => (
-            <div key={item.id} className="py-4 flex justify-between items-center">
-              <div>
-                <div className="font-medium">{item.name}</div>
-                <div className="text-gray-600">Quantity: {item.qty}</div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <div className="divide-y">{renderOrderItems()}</div>
       </div>
 
       {/* Order Summary */}
@@ -240,4 +236,4 @@ const OrderDetails: React.FC = () => {
   );
 };
 
-export default OrderDetails;
+export default OrderDetailsPage;

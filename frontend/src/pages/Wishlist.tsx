@@ -6,11 +6,14 @@ import { getWishlist, removeFromWishlist } from '../api/wishlist';
 import { useCart } from '../providers/CartContext';
 
 interface WishlistItem {
-  id: number;
-  name: string;
-  price: number;
-  images?: string[];
-  stock?: number;
+  id: string;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[];
+    stock: number;
+  };
 }
 
 const Wishlist: React.FC = () => {
@@ -34,24 +37,24 @@ const Wishlist: React.FC = () => {
     }
   };
 
-  const handleRemoveFromWishlist = async (itemId: number) => {
+  const handleRemoveFromWishlist = async (itemId: string) => {
     try {
       await removeFromWishlist(itemId);
       toast.success('Item removed from wishlist');
       setWishlistItems((items) => items.filter((item) => item.id !== itemId));
     } catch (error) {
-      toast.error('Failed to remove item from wishlist');
+      toast.error('Failed to remove item');
     }
   };
 
   const handleAddToCart = (item: WishlistItem) => {
     try {
       addToCart({
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        images: item.images || ['/logo192.png'],
-        stock: item.stock || 10,
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        images: item.product.images || ['/logo192.png'],
+        stock: item.product.stock || 10,
       });
       toast.success('Item added to cart');
       handleRemoveFromWishlist(item.id); // Optional: remove from wishlist after adding to cart
@@ -104,13 +107,13 @@ const Wishlist: React.FC = () => {
             >
               <div className="flex items-center space-x-4">
                 <img
-                  src={item.images?.[0] || '/logo192.png'}
-                  alt={item.name}
+                  src={item.product.images?.[0] || '/logo192.png'}
+                  alt={item.product.name}
                   className="w-16 h-16 object-cover rounded"
                 />
                 <div>
-                  <h3 className="font-medium">{item.name}</h3>
-                  <p className="text-red-600 font-semibold">₹{item.price}</p>
+                  <h3 className="font-medium">{item.product.name}</h3>
+                  <p className="text-red-600 font-semibold">₹{item.product.price}</p>
                 </div>
               </div>
 

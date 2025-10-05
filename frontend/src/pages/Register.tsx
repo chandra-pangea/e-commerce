@@ -25,7 +25,6 @@ const Register: React.FC = () => {
   ) => {
     try {
       const response = await apiRegister(values);
-      localStorage.setItem('token', response.token);
       login(response.user);
       toast.success('Registration successful!');
       navigate('/');
@@ -39,7 +38,6 @@ const Register: React.FC = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       const response = await googleLogin(credentialResponse.credential);
-      localStorage.setItem('token', response.token);
       login(response.user);
       toast.success('Registration successful!');
       navigate('/');

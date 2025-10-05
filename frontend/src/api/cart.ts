@@ -1,42 +1,36 @@
+import { get, post, put, del } from './Http';
+
 export interface CartItem {
-  product: any;
+  id: string;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    images: string[];
+  };
   quantity: number;
 }
 
-export class Cart {
-  private items: CartItem[] = [];
-
-  addItem(product: any, quantity: number): void {
-    const existingItem = this.items.find((item) => item.product.id === product.id);
-    if (existingItem) {
-      existingItem.quantity += quantity;
-    } else {
-      this.items.push({ product, quantity });
-    }
-  }
-
-  removeItem(productId: number): void {
-    this.items = this.items.filter((item) => item.product.id !== productId);
-  }
-
-  getTotalPrice(): number {
-    return this.items.reduce((total, item) => total + item.product.price * item.quantity, 0);
-  }
-
-  getItems(): CartItem[] {
-    return this.items;
-  }
+export interface CartResponse {
+  items: CartItem[];
+  total: number;
 }
 
-// Dummy Cart API for frontend only
-export const getCart = async () => {
-  return { items: [{ id: 1, name: 'Product 1', price: 100, qty: 2 }] };
-};
-export const updateCart = async (item: any) => {
-  return { success: true };
-};
-export const removeCartItem = async (id: number) => {
-  return { success: true };
+export const getCart = async (): Promise<CartResponse> => {
+  return await get<CartResponse>('/cart');
 };
 
-export {};
+export const addToCart = async (productId: string, quantity: number): Promise<CartResponse> => {
+  return await post<CartResponse>('/cart', { productId, quantity });
+};
+
+export const updateCartItem = async (
+  productId: string,
+  quantity: number,
+): Promise<CartResponse> => {
+  return await put<CartResponse>(`/cart/${productId}`, { quantity });
+};
+
+export const removeFromCart = async (productId: string): Promise<void> => {
+  return await del(`/cart/${productId}`);
+};
