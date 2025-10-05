@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { getAllOrders, updateOrderStatus } from '../../api/admin';
+import { OrderDetails } from '../../interfaces/Order';
 
 interface Order {
   id: number;
@@ -23,30 +24,17 @@ const OrdersList: React.FC = () => {
 
   const loadOrders = async () => {
     try {
-      const response = await getAllOrders();
-      let filteredOrders = response.orders;
+      setLoading(true);
+      const response = await getAllOrders({
+        page,
+        limit: 10,
+        status: filterCategory,
+        startDate: dateRange.from,
+        endDate: dateRange.to,
+      });
 
-      // Apply category filter if set
-      if (filterCategory) {
-        filteredOrders = filteredOrders.filter((order) =>
-          order.items.some((item) =>
-            item.name.toLowerCase().includes(filterCategory.toLowerCase()),
-          ),
-        );
-      }
-
-      // Apply date filter if set
-      if (dateRange.from && dateRange.to) {
-        const fromDate = new Date(dateRange.from);
-        const toDate = new Date(dateRange.to);
-        filteredOrders = filteredOrders.filter((order) => {
-          const orderDate = new Date(order.createdAt);
-          return orderDate >= fromDate && orderDate <= toDate;
-        });
-      }
-
-      setOrders(filteredOrders);
-      setTotalPages(Math.ceil(filteredOrders.length / 10));
+      setOrders(response.orders);
+      setTotalPages(response.totalPages);
     } catch (error) {
       toast.error('Failed to load orders');
     } finally {
@@ -55,8 +43,12 @@ const OrdersList: React.FC = () => {
   };
 
   useEffect(() => {
-    loadOrders();
-  }, [filterCategory, dateRange.from, dateRange.to]);
+    const debounceTimer = setTimeout(() => {
+      loadOrders();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [page, filterCategory, dateRange.from, dateRange.to]);
 
   const handleStatusUpdate = async (orderId: number, newStatus: string) => {
     try {
@@ -66,11 +58,6 @@ const OrdersList: React.FC = () => {
     } catch (error) {
       toast.error('Failed to update order status');
     }
-  };
-
-  const getCurrentPageOrders = () => {
-    const startIndex = (page - 1) * 10;
-    return orders.slice(startIndex, startIndex + 10);
   };
 
   if (loading) {
@@ -158,7 +145,7 @@ const OrdersList: React.FC = () => {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {getCurrentPageOrders().map((order) => (
+            {orders.map((order) => (
               <tr key={order.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">#{order.id}</div>
@@ -215,32 +202,21 @@ const OrdersList: React.FC = () => {
 
       {/* Pagination */}
       <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div className="flex-1 flex justify-between sm:hidden">
-          <button
-            onClick={() => setPage((p) => Math.max(p - 1, 1))}
-            disabled={page === 1}
-            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            disabled={page === totalPages}
-            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Next
-          </button>
-        </div>
         <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{(page - 1) * 10 + 1}</span> to{' '}
-              <span className="font-medium">{Math.min(page * 10, orders.length)}</span> of{' '}
-              <span className="font-medium">{orders.length}</span> results
+              Page {page} of {totalPages}
             </p>
           </div>
           <div>
             <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+              <button
+                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                disabled={page === 1}
+                className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              >
+                Previous
+              </button>
               {[...Array(totalPages)].map((_, index) => (
                 <button
                   key={index + 1}
@@ -254,6 +230,13 @@ const OrdersList: React.FC = () => {
                   {index + 1}
                 </button>
               ))}
+              <button
+                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+                disabled={page === totalPages}
+                className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              >
+                Next
+              </button>
             </nav>
           </div>
         </div>

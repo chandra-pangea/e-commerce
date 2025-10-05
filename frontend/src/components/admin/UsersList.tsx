@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { UserCheck, UserX } from 'lucide-react';
+import { UserCheck, UserX, Search } from 'lucide-react';
 import { getAllUsers, blockUser } from '../../api/admin';
 
 interface User {
@@ -12,20 +12,54 @@ interface User {
 
 const UsersList: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'blocked'>('all');
 
-  useEffect(() => {
-    loadUsers();
-  }, [page]);
+  const searchAndFilterSection = (
+    <div className="p-4 bg-gray-50 border-b border-gray-200">
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-md focus:ring-red-500 focus:border-red-500"
+            />
+            <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+          </div>
+        </div>
+        <div>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as 'all' | 'active' | 'blocked')}
+            className="border rounded-md py-2 px-4 focus:ring-red-500 focus:border-red-500"
+          >
+            <option value="all">All Users</option>
+            <option value="active">Active</option>
+            <option value="blocked">Blocked</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  );
 
   const loadUsers = async () => {
     try {
-      const response = await getAllUsers();
+      setLoading(true);
+      const response = await getAllUsers({
+        page,
+        limit: 10,
+        search: searchTerm,
+        status: filterStatus !== 'all' ? filterStatus : undefined,
+      });
+
       setUsers(response.users);
-      // In a real API, total pages would come from the backend
-      setTotalPages(Math.ceil(response.users.length / 10));
+      setTotalPages(response.totalPages);
     } catch (error) {
       toast.error('Failed to load users');
     } finally {
@@ -33,11 +67,19 @@ const UsersList: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      loadUsers();
+    }, 300);
+
+    return () => clearTimeout(debounceTimer);
+  }, [page, searchTerm, filterStatus]);
+
   const handleBlockUser = async (userId: number, blocked: boolean) => {
     try {
-      await blockUser(userId);
-      toast.success(`User ${blocked ? 'blocked' : 'unblocked'} successfully`);
-      loadUsers();
+      // await blockUser(userId);
+      toast.success(`User block feature under development`);
+      //loadUsers();
     } catch (error) {
       toast.error('Failed to update user status');
     }
@@ -58,6 +100,7 @@ const UsersList: React.FC = () => {
 
   return (
     <div className="bg-white rounded-lg shadow">
+      {searchAndFilterSection}
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">

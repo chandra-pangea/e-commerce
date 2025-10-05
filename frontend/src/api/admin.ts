@@ -1,55 +1,145 @@
-// Dummy Admin API for frontend only
-export const getAllUsers = async () => {
-  return { users: [{ id: 1, email: 'user@example.com', name: 'User', blocked: false }] };
+import { get, post, put, del } from './Http';
+
+interface PaginationParams {
+  page?: number;
+  limit?: number;
+}
+
+interface SearchParams {
+  search?: string;
+  category?: string;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+type QueryParams = PaginationParams & SearchParams;
+
+// Helper function to build query string
+const buildQueryString = (params: QueryParams): string => {
+  const queryParams = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== '') {
+      queryParams.append(key, value.toString());
+    }
+  });
+
+  return queryParams.toString();
 };
 
-export const blockUser = async (id: number) => {
-  return { success: true };
+// Types
+interface User {
+  id: number;
+  email: string;
+  name: string;
+  blocked: boolean;
+}
+
+interface OrderItem {
+  id: number;
+  name: string;
+  qty: number;
+}
+
+interface Order {
+  id: number;
+  status: string;
+  amount: number;
+  items: OrderItem[];
+  paymentStatus: string;
+  deliveryStatus: string;
+  createdAt: string;
+}
+
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  category: string;
+  stock: number;
+  images?: string[];
+  description: string;
+}
+
+interface OrderFilters {
+  page: number;
+  limit: number;
+  status?: string;
+  startDate?: string;
+  endDate?: string;
+}
+
+// User management
+export const getAllUsers = async (
+  params: QueryParams = {},
+): Promise<{
+  users: User[];
+  total: number;
+  page: number;
+  totalPages: number;
+}> => {
+  const queryString = buildQueryString(params);
+  return await get(`/auth/users?${queryString}`);
 };
 
-export const getAllOrders = async () => {
-  return {
-    orders: [
-      {
-        id: 123,
-        status: 'pending',
-        amount: 200,
-        items: [{ id: 1, name: 'Product 1', qty: 2 }],
-        paymentStatus: 'paid',
-        deliveryStatus: 'pending',
-        createdAt: '2025-10-02',
-      },
-      {
-        id: 124,
-        status: 'delivered',
-        amount: 150,
-        items: [{ id: 2, name: 'Product 2', qty: 1 }],
-        paymentStatus: 'paid',
-        deliveryStatus: 'delivered',
-        createdAt: '2025-10-01',
-      },
-    ],
-  };
+export const blockUser = async (id: number): Promise<{ success: boolean }> => {
+  return await put(`/admin/users/${id}/block`);
 };
 
-export const updateOrderStatus = async (id: number, status: string) => {
-  return { success: true };
+// Order management
+export const getAllOrders = async (
+  params: QueryParams = {},
+): Promise<{
+  orders: Order[];
+  total: number;
+  page: number;
+  totalPages: number;
+}> => {
+  const queryString = buildQueryString(params);
+  return await get(`/orders/admin/all?${queryString}`);
 };
 
-export const getAllProducts = async () => {
-  return { products: [{ id: 1, name: 'Product 1', price: 100 }] };
+export const updateOrderStatus = async (
+  id: number,
+  status: string,
+): Promise<{ success: boolean }> => {
+  return await put(`/orders/${id}/status`, { status });
 };
 
-export const createProduct = async (product: any) => {
-  return { success: true };
+// Product management
+export const getAllProducts = async (
+  params: QueryParams = {},
+): Promise<{
+  products: Product[];
+  total: number;
+  page: number;
+  totalPages: number;
+}> => {
+  const queryString = buildQueryString(params);
+  return await get(`/products/all?${queryString}`);
 };
 
-export const updateProduct = async (id: number, product: any) => {
-  return { success: true };
+export const createProduct = async (product: FormData): Promise<{ success: boolean }> => {
+  return await post('/products', product, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 };
 
-export const deleteProduct = async (id: number) => {
-  return { success: true };
+export const updateProduct = async (
+  id: number,
+  data: FormData | Partial<Product>,
+): Promise<{ success: boolean }> => {
+  const headers =
+    data instanceof FormData
+      ? { 'Content-Type': 'multipart/form-data' }
+      : { 'Content-Type': 'application/json' };
+
+  return await put(`/products/${id}`, data, { headers });
 };
 
-export {};
+export const deleteProduct = async (id: number): Promise<{ success: boolean }> => {
+  return await del(`/products/${id}`);
+};
+
+export type { User, Order, OrderItem, OrderFilters };

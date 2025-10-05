@@ -12,10 +12,10 @@ interface Product {
   id: number;
   name: string;
   price: number;
-  category?: string;
-  stock?: number;
+  category: string; // Changed from optional to required
+  stock: number; // Changed from optional to required
   images?: string[];
-  description?: string;
+  description: string; // Changed from optional to required
 }
 
 interface ProductFormData {
@@ -48,10 +48,10 @@ const ProductsList: React.FC = () => {
     images: [],
     description: '',
   });
-  const [imagePreview, setImagePreview] = useState<string>('');
   const [uploadErrors, setUploadErrors] = useState<ImageValidationError[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [modalKey, setModalKey] = useState(0);
 
   useEffect(() => {
     loadProducts();
@@ -60,7 +60,14 @@ const ProductsList: React.FC = () => {
   const loadProducts = async () => {
     try {
       const response = await getAllProducts();
-      setProducts(response.products);
+      // Add type assertion to ensure all required fields are present
+      const productsWithDefaults = response.products.map((product) => ({
+        ...product,
+        category: product.category || '',
+        stock: product.stock || 0,
+        description: product.description || '',
+      }));
+      setProducts(productsWithDefaults);
       setTotalPages(Math.ceil(response.products.length / 10));
     } catch (error) {
       toast.error('Failed to load products');
@@ -72,34 +79,62 @@ const ProductsList: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const submitData = new FormData();
-      submitData.append('name', formData.name);
-      submitData.append('price', formData.price.toString());
-      submitData.append('category', formData.category);
-      submitData.append('stock', formData.stock.toString());
-      submitData.append('description', formData.description);
-      formData.images.forEach((image) => {
-        submitData.append('images', image);
-      });
-
       if (editingProduct) {
-        await updateProduct(editingProduct.id, submitData);
+        const hasNewImages = formData.images.length > 0;
+
+        if (hasNewImages) {
+          // If there are new images, send as FormData
+          const submitData = new FormData();
+          submitData.append('name', formData.name);
+          submitData.append('price', formData.price.toString());
+          submitData.append('category', formData.category);
+          submitData.append('stock', formData.stock.toString());
+          submitData.append('description', formData.description);
+
+          // Append new images
+          formData.images.forEach((image) => {
+            submitData.append('images', image);
+          });
+
+          // Append existing images that weren't removed
+          imagePreviews.forEach((imageUrl) => {
+            if (!imageUrl.startsWith('blob:')) {
+              submitData.append('existingImages', imageUrl);
+            }
+          });
+
+          await updateProduct(editingProduct.id, submitData);
+        } else {
+          // If no new images, send as JSON
+          const updateData: Partial<Product> = {
+            name: formData.name,
+            price: formData.price,
+            category: formData.category,
+            stock: formData.stock,
+            description: formData.description,
+            images: imagePreviews,
+          };
+          await updateProduct(editingProduct.id, updateData);
+        }
         toast.success('Product updated successfully');
       } else {
+        const submitData = new FormData();
+        submitData.append('name', formData.name);
+        submitData.append('price', formData.price.toString());
+        submitData.append('category', formData.category);
+        submitData.append('stock', formData.stock.toString());
+        submitData.append('description', formData.description);
+
+        // Append new images if any
+        formData.images.forEach((image) => {
+          submitData.append('images', image);
+        });
+
         await createProduct(submitData);
         toast.success('Product created successfully');
       }
-      setIsModalOpen(false);
-      setEditingProduct(null);
-      setFormData({
-        name: '',
-        price: 0,
-        category: '',
-        stock: 0,
-        images: [],
-        description: '',
-      });
-      setImagePreview('');
+
+      closeModal();
       loadProducts();
     } catch (error) {
       toast.error(editingProduct ? 'Failed to update product' : 'Failed to create product');
@@ -127,12 +162,13 @@ const ProductsList: React.FC = () => {
       price: product.price,
       category: product.category || '',
       stock: product.stock || 0,
-      images: [],
+      images: [], // Keep existing images separate
       description: product.description || '',
     });
     setImagePreviews(product.images || []);
     setIsModalOpen(true);
     setUploadErrors([]);
+    setModalKey((prev) => prev + 1);
   };
 
   const validateFile = (file: File): string | null => {
@@ -183,8 +219,27 @@ const ProductsList: React.FC = () => {
     setIsUploading(false);
   };
 
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingProduct(null);
+    setFormData({
+      name: '',
+      price: 0,
+      category: '',
+      stock: 0,
+      images: [],
+      description: '',
+    });
+    setImagePreviews([]);
+    setUploadErrors([]);
+    setModalKey((prev) => prev + 1);
+  };
+
   const ProductModal = () => (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div
+      key={modalKey}
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+    >
       <div className="bg-white p-6 rounded-lg w-[32rem] max-w-[90%] max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-semibold mb-4">
           {editingProduct ? 'Edit Product' : 'Add New Product'}
@@ -295,12 +350,7 @@ const ProductsList: React.FC = () => {
           <div className="flex justify-end gap-4 mt-6">
             <button
               type="button"
-              onClick={() => {
-                setIsModalOpen(false);
-                setEditingProduct(null);
-                setImagePreviews([]);
-                setUploadErrors([]);
-              }}
+              onClick={closeModal}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
             >
               Cancel
