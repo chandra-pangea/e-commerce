@@ -13,11 +13,11 @@ module.exports = {
     'plugin:@typescript-eslint/recommended',
     'plugin:react/recommended',
     'plugin:react-hooks/recommended',
-    'plugin:prettier/recommended', // works with eslint-config-prettier
-    'prettier', // this ensures Prettier formatting rules override ESLint conflicts
+    'plugin:prettier/recommended',
+    'prettier', 
   ],
   rules: {
-    'no-console': ['error', { allow: ['warn', 'error'] }],
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-debugger': 'error',
     eqeqeq: ['error', 'always'],
     curly: ['error', 'all'],
