@@ -4,6 +4,7 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getCart, addToCart, updateCartItem, removeFromCart, CartItem } from '../api/cart';
 import { getAddresses, addAddress, updateAddress, setDefaultAddress } from '../api/address';
+import { createOrder, getOrderDetails } from '../api/orders';
 
 interface Address {
   _id?: string;
@@ -139,11 +140,47 @@ const Cart: React.FC = () => {
     }
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (!selectedAddress) {
       return toast.error('Please select a shipping address');
     }
-    navigate('/checkout', { state: { address: selectedAddress } });
+
+    try {
+      const res = await createOrder(selectedAddress._id!);
+
+      if (res.success && res.data.paymentLink) {
+        const orderId = res.data.orderId;
+
+        window.open(res.data.paymentLink, '_blank');
+
+        // Poll every 10 seconds
+        let elapsed = 0;
+        const interval = setInterval(async () => {
+          try {
+            const orderStatus = await getOrderDetails(orderId);
+
+            if (orderStatus && orderStatus.paymentStatus.toLowerCase() === 'paid') {
+              clearInterval(interval);
+              toast.success('Payment successful! Redirecting to orders...');
+              navigate('/orders');
+            }
+          } catch (err) {
+            console.error('Error checking order status:', err);
+          }
+
+          elapsed += 5000;
+          if (elapsed >= 5 * 60 * 1000) {
+            clearInterval(interval);
+            toast.error('Payment status not updated. Please check your orders later.');
+          }
+        }, 5000);
+      } else {
+        toast.error('Failed to create order. Please try again.');
+      }
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error('Something went wrong during checkout');
+    }
   };
 
   if (loading) {

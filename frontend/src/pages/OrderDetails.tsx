@@ -2,20 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { ArrowLeft, Truck, CreditCard, Star } from 'lucide-react';
-import { getOrderDetails, cancelOrder, submitReview } from '../api/orders';
+import { getOrderDetails, cancelOrder, submitReview, getOrderById } from '../api/orders';
 import ReviewForm from '../components/ReviewForm';
-import type { OrderDetails as IOrderDetails } from '../interfaces/Order';
-
-interface OrderItem {
-  id: number;
-  name: string;
-  qty: number;
-}
+import { OrderDetails, OrderResponse } from '../interfaces/Order';
 
 const OrderDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [order, setOrder] = useState<IOrderDetails | null>(null);
+  const [order, setOrder] = useState<OrderDetails | null>(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -28,8 +22,11 @@ const OrderDetailsPage: React.FC = () => {
       if (!id) {
         return;
       }
-      const data = await getOrderDetails(id);
-      setOrder(data as IOrderDetails);
+
+      const response = (await getOrderById(id)) as any;
+      if (response.success && response.data) {
+        setOrder(response.data);
+      }
     } catch (error) {
       toast.error('Failed to load order details');
     } finally {
@@ -38,12 +35,12 @@ const OrderDetailsPage: React.FC = () => {
   };
 
   const handleCancelOrder = async () => {
-    if (!order || !window.confirm('Are you sure you want to cancel this order?')) {
+    if (!order) {
       return;
     }
 
     try {
-      await cancelOrder(order.id);
+      await cancelOrder(order._id);
       toast.success('Order cancelled successfully');
       loadOrderDetails();
     } catch (error) {
@@ -56,7 +53,7 @@ const OrderDetailsPage: React.FC = () => {
       return;
     }
     try {
-      await submitReview(order.id, review);
+      await submitReview(order._id, review);
       toast.success('Thank you for your review!');
       setIsReviewModalOpen(false);
       loadOrderDetails();
@@ -65,8 +62,12 @@ const OrderDetailsPage: React.FC = () => {
     }
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) {
+      return 'bg-gray-100 text-gray-800';
+    }
+
+    switch (status.toLowerCase()) {
       case 'delivered':
         return 'bg-green-100 text-green-800';
       case 'pending':
@@ -79,12 +80,14 @@ const OrderDetailsPage: React.FC = () => {
   };
 
   const renderOrderItems = () => {
-    return order?.items.map((item) => (
-      <div key={item.id} className="py-4 flex justify-between items-center">
+    return order?.items?.map((item) => (
+      <div key={item._id} className="py-4 flex justify-between items-center">
         <div>
           <div className="font-medium">{item.product.name}</div>
           <div className="text-gray-600">Quantity: {item.quantity}</div>
+          <div className="text-gray-600">Price: ₹{item.price}</div>
         </div>
+        <div className="font-semibold">₹{(item.price * item.quantity).toFixed(2)}</div>
       </div>
     ));
   };
@@ -125,7 +128,7 @@ const OrderDetailsPage: React.FC = () => {
         </button>
       </div>
 
-      <h2 className="text-2xl font-bold mb-6 text-red-700">Order #{order.id}</h2>
+      <h2 className="text-2xl font-bold mb-6 text-red-700">Order #{order._id}</h2>
 
       {/* Order Status */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -134,8 +137,10 @@ const OrderDetailsPage: React.FC = () => {
             <Truck className="w-5 h-5 text-red-600 mr-2" />
             <span className="font-semibold">Delivery Status</span>
           </div>
-          <span className={`px-3 py-1 rounded ${getStatusColor(order.deliveryStatus)}`}>
-            {order.deliveryStatus.charAt(0).toUpperCase() + order.deliveryStatus.slice(1)}
+          <span className={`px-3 py-1 rounded ${getStatusColor(order?.deliveryStatus)}`}>
+            {order?.deliveryStatus
+              ? order.deliveryStatus.charAt(0).toUpperCase() + order.deliveryStatus
+              : 'Not Available'}
           </span>
         </div>
 
@@ -151,7 +156,7 @@ const OrderDetailsPage: React.FC = () => {
                 : 'bg-red-100 text-red-800'
             }`}
           >
-            {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+            {order.paymentStatus}
           </span>
         </div>
 
@@ -172,7 +177,7 @@ const OrderDetailsPage: React.FC = () => {
         <h3 className="text-lg font-semibold mb-4">Order Summary</h3>
         <div className="flex justify-between items-center border-t pt-4">
           <span className="font-semibold">Total Amount</span>
-          <span className="text-xl font-bold">₹{order.amount}</span>
+          <span className="text-xl font-bold">₹{order.totalAmount}</span>
         </div>
       </div>
 
@@ -209,7 +214,7 @@ const OrderDetailsPage: React.FC = () => {
 
       {/* Actions */}
       <div className="flex justify-end space-x-4">
-        {order.canCancel && (
+        {order.status === 'pending' && (
           <button
             onClick={handleCancelOrder}
             className="px-6 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200"

@@ -37,12 +37,12 @@ const ProductDetails: React.FC = () => {
     toast.success('Added to cart!');
   };
 
-  const handleBuyNow = () => {
+  const handleBuyNow = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    addToCart(product._id, quantity);
+    await addToCart(product._id, quantity);
     navigate('/cart');
   };
 
