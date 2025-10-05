@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useCart } from '../providers/CartContext';
 import { toast } from 'react-toastify';
+import { getCart } from '../api/cart';
 
 interface PaymentDetails {
   cardNumber: string;
@@ -12,7 +12,6 @@ interface PaymentDetails {
 
 const Checkout: React.FC = () => {
   const navigate = useNavigate();
-  const { totalAmount, clearCart } = useCart();
   const [paymentDetails, setPaymentDetails] = useState<PaymentDetails>({
     cardNumber: '',
     expiryDate: '',
@@ -20,6 +19,7 @@ const Checkout: React.FC = () => {
     name: '',
   });
   const [isProcessing, setIsProcessing] = useState(false);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,6 +29,11 @@ const Checkout: React.FC = () => {
     }));
   };
 
+  const loadCart = async () => {
+    const { items, total } = await getCart();
+    setTotalAmount((total + 49).toFixed(2) as unknown as number);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsProcessing(true);
@@ -36,18 +41,22 @@ const Checkout: React.FC = () => {
     // Simulate payment processing
     setTimeout(() => {
       setIsProcessing(false);
-      clearCart();
+      // clearCart();
       toast.success('Order placed successfully!');
       navigate('/order/confirmation');
     }, 2000);
   };
+
+  useEffect(() => {
+    loadCart();
+  }, []);
 
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Payment Details</h2>
 
       <div className="mb-6">
-        <div className="text-lg font-semibold text-gray-800">Order Total: ₹{totalAmount + 49}</div>
+        <div className="text-lg font-semibold text-gray-800">Order Total: ₹{totalAmount}</div>
         <div className="text-sm text-gray-600">(Including ₹49 shipping)</div>
       </div>
 

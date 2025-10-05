@@ -18,7 +18,7 @@ export const getWishlist = async (): Promise<{ items: WishlistItem[] }> => {
 };
 
 export const addToWishlist = async (productId: string): Promise<void> => {
-  return await post('/wishlist', { productId });
+  return await post(`/wishlist/${productId}`);
 };
 
 export const removeFromWishlist = async (productId: string): Promise<void> => {

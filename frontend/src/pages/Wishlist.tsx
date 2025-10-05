@@ -3,23 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Heart, ShoppingCart, Trash2, Package } from 'lucide-react';
 import { getWishlist, removeFromWishlist } from '../api/wishlist';
-import { useCart } from '../providers/CartContext';
+import { addToCart } from '../api/cart';
 
 interface WishlistItem {
   id: string;
-  product: {
-    id: string;
-    name: string;
-    price: number;
-    images: string[];
-    stock: number;
-  };
+  name: string;
+  price: number;
+  images: string[];
+  stock: number;
 }
 
 const Wishlist: React.FC = () => {
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const { addToCart } = useCart();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,7 +25,15 @@ const Wishlist: React.FC = () => {
   const loadWishlist = async () => {
     try {
       const response = await getWishlist();
-      setWishlistItems(response.items);
+      setWishlistItems(
+        response.items.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          images: item.images ?? [],
+          stock: item.stock ?? 0,
+        })),
+      );
     } catch (error) {
       toast.error('Failed to load wishlist');
     } finally {
@@ -49,15 +53,9 @@ const Wishlist: React.FC = () => {
 
   const handleAddToCart = (item: WishlistItem) => {
     try {
-      addToCart({
-        id: item.product.id,
-        name: item.product.name,
-        price: item.product.price,
-        images: item.product.images || ['/logo192.png'],
-        stock: item.product.stock || 10,
-      });
+      addToCart(item.id, 1);
       toast.success('Item added to cart');
-      handleRemoveFromWishlist(item.id); // Optional: remove from wishlist after adding to cart
+      handleRemoveFromWishlist(item.id);
     } catch (error) {
       toast.error('Failed to add item to cart');
     }
@@ -107,13 +105,13 @@ const Wishlist: React.FC = () => {
             >
               <div className="flex items-center space-x-4">
                 <img
-                  src={item.product.images?.[0] || '/logo192.png'}
-                  alt={item.product.name}
+                  src={item.images?.[0] || '/logo192.png'}
+                  alt={item.name}
                   className="w-16 h-16 object-cover rounded"
                 />
                 <div>
-                  <h3 className="font-medium">{item.product.name}</h3>
-                  <p className="text-red-600 font-semibold">₹{item.product.price}</p>
+                  <h3 className="font-medium">{item.name}</h3>
+                  <p className="text-red-600 font-semibold">₹{item.price}</p>
                 </div>
               </div>
 

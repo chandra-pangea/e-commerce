@@ -2,14 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { getProductDetails } from '../api/products';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Star, ArrowLeft, Heart, Plus, Minus } from 'lucide-react';
-import { useCart } from '../providers/CartContext';
 import { toast } from 'react-toastify';
 import { useAuth } from '../hooks/useAuth';
+import { addToCart } from '../api/cart';
+import { addToWishlist, removeFromWishlist } from '../api/wishlist';
 
 const ProductDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { addToCart } = useCart();
   const [product, setProduct] = useState<any>(null);
   const [quantity, setQuantity] = useState(1);
   const [isInWishlist, setIsInWishlist] = useState(false);
@@ -33,7 +33,7 @@ const ProductDetails: React.FC = () => {
       navigate('/login');
       return;
     }
-    addToCart(product, quantity);
+    addToCart(product._id, quantity);
     toast.success('Added to cart!');
   };
 
@@ -42,11 +42,20 @@ const ProductDetails: React.FC = () => {
       navigate('/login');
       return;
     }
-    addToCart(product, quantity);
+    addToCart(product._id, quantity);
     navigate('/cart');
   };
 
   const handleWishlistToggle = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    if (isInWishlist) {
+      removeFromWishlist(product._id);
+    } else {
+      addToWishlist(product._id);
+    }
     setIsInWishlist(!isInWishlist);
     toast.success(isInWishlist ? 'Removed from wishlist!' : 'Added to wishlist!');
   };

@@ -1,13 +1,19 @@
 import { get, post, put, del } from './Http';
 
+export interface Product {
+  _id: string;
+  name: string;
+  price: number;
+  description?: string;
+  category?: string;
+  stock: number;
+  images: string[];
+  rating?: number;
+}
+
 export interface CartItem {
-  id: string;
-  product: {
-    id: string;
-    name: string;
-    price: number;
-    images: string[];
-  };
+  _id: string;
+  product: Product;
   quantity: number;
 }
 
@@ -17,20 +23,29 @@ export interface CartResponse {
 }
 
 export const getCart = async (): Promise<CartResponse> => {
-  return await get<CartResponse>('/cart');
+  const response = await get<{ success: boolean; data: CartResponse }>('/cart');
+  return response.data;
 };
 
 export const addToCart = async (productId: string, quantity: number): Promise<CartResponse> => {
-  return await post<CartResponse>('/cart', { productId, quantity });
+  const response = await post<{ success: boolean; data: CartResponse }>('/cart', {
+    productId,
+    quantity,
+  });
+  return response.data;
 };
 
 export const updateCartItem = async (
   productId: string,
   quantity: number,
 ): Promise<CartResponse> => {
-  return await put<CartResponse>(`/cart/${productId}`, { quantity });
+  const response = await put<{ success: boolean; data: CartResponse }>(`/cart/${productId}`, {
+    quantity,
+  });
+  return response.data;
 };
 
-export const removeFromCart = async (productId: string): Promise<void> => {
-  return await del(`/cart/${productId}`);
+export const removeFromCart = async (productId: string): Promise<CartResponse> => {
+  const response = await del<{ success: boolean; data: CartResponse }>(`/cart/${productId}`);
+  return response.data;
 };
