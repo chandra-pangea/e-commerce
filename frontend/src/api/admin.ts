@@ -121,6 +121,10 @@ export const getAllProducts = async (
   return await get(`/products/all?${queryString}`);
 };
 
+export const getAllCategories = async (): Promise<string[]> => {
+  return await get('/products/categories');
+};
+
 export const createProduct = async (product: FormData): Promise<any> => {
   return await post('/products', product, {
     headers: { 'Content-Type': 'multipart/form-data' },

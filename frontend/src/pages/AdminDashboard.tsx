@@ -23,17 +23,17 @@ const AdminDashboard: React.FC = () => {
   const loadStats = async () => {
     try {
       const [ordersRes, usersRes, productsRes] = await Promise.all([
-        getAllOrders(),
-        getAllUsers(),
-        getAllProducts(),
+        getAllOrders({ limit: 1 }),
+        getAllUsers({ limit: 1 }),
+        getAllProducts({ limit: 1 }),
       ]);
 
       const totalRevenue = ordersRes.orders.reduce((sum, order) => sum + order.amount, 0);
 
       setStats({
-        totalUsers: usersRes.users.length,
-        totalProducts: productsRes.products.length,
-        totalOrders: ordersRes.orders.length,
+        totalUsers: usersRes.total,
+        totalProducts: productsRes.total,
+        totalOrders: ordersRes.total,
         totalRevenue,
       });
     } catch (error) {

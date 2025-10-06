@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getAllProducts, createProduct, updateProduct, deleteProduct } from '../../api/admin';
 import ProductModal from './ProductModal';
+import { getCategories } from '../../api/products';
 
 // File validation constants
 export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
@@ -53,23 +54,36 @@ const ProductsList: React.FC = () => {
   const [uploadErrors, setUploadErrors] = useState<ImageValidationError[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [categories, setCategories] = useState<string[]>([]);
 
   useEffect(() => {
     loadProducts();
-  }, [page]);
+    loadCategories();
+  }, [page, searchTerm, selectedCategory]);
+
+  const loadCategories = async () => {
+    try {
+      const response = await getCategories();
+      setCategories(response);
+    } catch (error) {
+      toast.error('Failed to load categories');
+    }
+  };
 
   const loadProducts = async () => {
     try {
-      const response = await getAllProducts();
-      // Add type assertion to ensure all required fields are present
-      const productsWithDefaults = response.products.map((product) => ({
-        ...product,
-        category: product.category || '',
-        stock: product.stock || 0,
-        description: product.description || '',
-      }));
-      setProducts(productsWithDefaults);
-      setTotalPages(Math.ceil(response.products.length / 10));
+      setLoading(true);
+      const response = await getAllProducts({
+        page,
+        limit: 10,
+        search: searchTerm,
+        category: selectedCategory,
+      });
+
+      setProducts(response.products);
+      setTotalPages(response.totalPages);
     } catch (error) {
       toast.error('Failed to load products');
     } finally {
@@ -234,6 +248,36 @@ const ProductsList: React.FC = () => {
     setUploadErrors([]);
   };
 
+  const FilterSection = () => (
+    <div className="p-4 bg-gray-50 border-b border-gray-200">
+      <div className="flex flex-wrap gap-4 items-center">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full px-4 py-2 border rounded-md focus:ring-red-500 focus:border-red-500"
+          />
+        </div>
+        <div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="px-4 py-2 border rounded-md focus:ring-red-500 focus:border-red-500"
+          >
+            <option value="">All Categories</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>
+                {category}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="animate-pulse space-y-4">
@@ -258,7 +302,7 @@ const ProductsList: React.FC = () => {
           Add New Product
         </button>
       </div>
-
+      <FilterSection />
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -325,53 +369,26 @@ const ProductsList: React.FC = () => {
           </tbody>
         </table>
       </div>
-
       {/* Pagination */}
-      <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-        <div className="flex-1 flex justify-between sm:hidden">
-          <button
-            onClick={() => setPage((p) => Math.max(p - 1, 1))}
-            disabled={page === 1}
-            className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Previous
-          </button>
-          <button
-            onClick={() => setPage((p) => p + 1)}
-            disabled={page === totalPages}
-            className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-          >
-            Next
-          </button>
-        </div>
-        <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">1</span> to{' '}
-              <span className="font-medium">10</span> of{' '}
-              <span className="font-medium">{products.length}</span> results
-            </p>
-          </div>
-          <div>
-            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-              {[...Array(totalPages)].map((_, index) => (
-                <button
-                  key={index + 1}
-                  onClick={() => setPage(index + 1)}
-                  className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                    page === index + 1
-                      ? 'z-10 bg-red-50 border-red-500 text-red-600'
-                      : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                  }`}
-                >
-                  {index + 1}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </div>
+      <div className="mt-8 py-2 flex items-center justify-center gap-4">
+        <button
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+          className="p-2 rounded-md border hover:bg-gray-50 disabled:opacity-50"
+        >
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+        <span className="text-sm text-gray-600">
+          Page {page} of {totalPages}
+        </span>
+        <button
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page === totalPages}
+          className="p-2 rounded-md border hover:bg-gray-50 disabled:opacity-50"
+        >
+          <ChevronRight className="w-5 h-5" />
+        </button>
       </div>
-
       {/* Product Modal */}
       <ProductModal
         isOpen={isModalOpen}
