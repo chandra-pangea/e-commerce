@@ -29,17 +29,11 @@ const AdminDashboard: React.FC = () => {
         getAllProducts({ limit: 1 }),
       ]);
 
-      // Calculate total revenue with proper type checking
-      const totalRevenue = ordersRes.orders.reduce((sum, order) => {
-        const amount = Number(order.amount) || 0; // Convert to number and handle null/undefined
-        return sum + amount;
-      }, 0);
-
       setStats({
         totalUsers: usersRes.total || 0,
         totalProducts: productsRes.total || 0,
         totalOrders: ordersRes.total || 0,
-        totalRevenue: Number(totalRevenue.toFixed(2)) || 0, // Format to 2 decimal places
+        totalRevenue: 0, // Format to 2 decimal places
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
@@ -55,7 +49,7 @@ const AdminDashboard: React.FC = () => {
 
   // Update the revenue display to format the number
   const StatsSection = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
       <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex items-center">
           <Users className="h-12 w-12 text-red-600" />
@@ -83,7 +77,7 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="bg-white p-6 rounded-lg shadow">
+      {/* <div className="bg-white p-6 rounded-lg shadow">
         <div className="flex items-center">
           <DollarSign className="h-12 w-12 text-red-600" />
           <div className="ml-4">
@@ -97,7 +91,7 @@ const AdminDashboard: React.FC = () => {
             </p>
           </div>
         </div>
-      </div>
+      </div> */}
     </div>
   );
 
