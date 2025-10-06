@@ -44,6 +44,7 @@ interface OrderItem {
 
 interface Order {
   id: number;
+  _id: string;
   status: string;
   amount: number;
   items: OrderItem[];
@@ -101,7 +102,7 @@ export const getAllOrders = async (
 };
 
 export const updateOrderStatus = async (
-  id: number,
+  id: string,
   status: string,
 ): Promise<{ success: boolean }> => {
   return await put(`/orders/${id}/status`, { status });
@@ -120,16 +121,16 @@ export const getAllProducts = async (
   return await get(`/products/all?${queryString}`);
 };
 
-export const createProduct = async (product: FormData): Promise<{ success: boolean }> => {
+export const createProduct = async (product: FormData): Promise<any> => {
   return await post('/products', product, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 };
 
 export const updateProduct = async (
-  id: number,
+  id: string,
   data: FormData | Partial<Product>,
-): Promise<{ success: boolean }> => {
+): Promise<any> => {
   const headers =
     data instanceof FormData
       ? { 'Content-Type': 'multipart/form-data' }
@@ -138,7 +139,7 @@ export const updateProduct = async (
   return await put(`/products/${id}`, data, { headers });
 };
 
-export const deleteProduct = async (id: number): Promise<{ success: boolean }> => {
+export const deleteProduct = async (id: string): Promise<{ success: boolean }> => {
   return await del(`/products/${id}`);
 };
 

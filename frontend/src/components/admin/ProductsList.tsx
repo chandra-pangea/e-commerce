@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-toastify';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 import { getAllProducts, createProduct, updateProduct, deleteProduct } from '../../api/admin';
+import ProductModal from './ProductModal';
 
 // File validation constants
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
-const MAX_FILES = 5;
+export const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+export const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+export const MAX_FILES = 5;
 
-interface Product {
+export interface Product {
+  _id?: string;
   id: number;
   name: string;
   price: number;
@@ -18,7 +20,7 @@ interface Product {
   description: string; // Changed from optional to required
 }
 
-interface ProductFormData {
+export interface ProductFormData {
   name: string;
   price: number;
   category: string;
@@ -28,7 +30,7 @@ interface ProductFormData {
 }
 
 // Image validation error type
-interface ImageValidationError {
+export interface ImageValidationError {
   file: File;
   error: string;
 }
@@ -51,7 +53,6 @@ const ProductsList: React.FC = () => {
   const [uploadErrors, setUploadErrors] = useState<ImageValidationError[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
-  const [modalKey, setModalKey] = useState(0);
 
   useEffect(() => {
     loadProducts();
@@ -103,7 +104,7 @@ const ProductsList: React.FC = () => {
             }
           });
 
-          await updateProduct(editingProduct.id, submitData);
+          await updateProduct(editingProduct._id!, submitData);
         } else {
           // If no new images, send as JSON
           const updateData: Partial<Product> = {
@@ -114,7 +115,7 @@ const ProductsList: React.FC = () => {
             description: formData.description,
             images: imagePreviews,
           };
-          await updateProduct(editingProduct.id, updateData);
+          await updateProduct(editingProduct._id!, updateData);
         }
         toast.success('Product updated successfully');
       } else {
@@ -141,7 +142,7 @@ const ProductsList: React.FC = () => {
     }
   };
 
-  const handleDelete = async (productId: number) => {
+  const handleDelete = async (productId: string) => {
     if (!window.confirm('Are you sure you want to delete this product?')) {
       return;
     }
@@ -168,7 +169,6 @@ const ProductsList: React.FC = () => {
     setImagePreviews(product.images || []);
     setIsModalOpen(true);
     setUploadErrors([]);
-    setModalKey((prev) => prev + 1);
   };
 
   const validateFile = (file: File): string | null => {
@@ -232,141 +232,7 @@ const ProductsList: React.FC = () => {
     });
     setImagePreviews([]);
     setUploadErrors([]);
-    setModalKey((prev) => prev + 1);
   };
-
-  const ProductModal = () => (
-    <div
-      key={modalKey}
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-    >
-      <div className="bg-white p-6 rounded-lg w-[32rem] max-w-[90%] max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-semibold mb-4">
-          {editingProduct ? 'Edit Product' : 'Add New Product'}
-        </h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price</label>
-            <input
-              type="number"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-              className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3"
-              required
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Category</label>
-            <input
-              type="text"
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Stock</label>
-            <input
-              type="number"
-              value={formData.stock}
-              onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
-              className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3"
-              required
-              min="0"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="mt-1 block w-full border rounded-md shadow-sm py-2 px-3"
-              rows={4}
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Product Images
-              <span className="text-gray-500 ml-1">
-                (Max {MAX_FILES} images, {MAX_FILE_SIZE / 1024 / 1024}MB each)
-              </span>
-            </label>
-            <div className="flex flex-wrap gap-4">
-              {imagePreviews.map((preview, index) => (
-                <div key={preview} className="relative">
-                  <img
-                    src={preview}
-                    alt={`Product preview ${index + 1}`}
-                    className="h-24 w-24 object-cover rounded-md"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newImages = formData.images.filter((_, i) => i !== index);
-                      const newPreviews = imagePreviews.filter((_, i) => i !== index);
-                      setFormData({ ...formData, images: newImages });
-                      setImagePreviews(newPreviews);
-                    }}
-                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))}
-              {formData.images.length < MAX_FILES && (
-                <label className="cursor-pointer flex items-center justify-center w-24 h-24 border-2 border-dashed border-gray-300 rounded-md hover:border-gray-400">
-                  <span className="text-gray-600">+</span>
-                  <input
-                    type="file"
-                    className="hidden"
-                    onChange={handleImageChange}
-                    accept={ALLOWED_FILE_TYPES.join(',')}
-                    multiple
-                    disabled={isUploading}
-                  />
-                </label>
-              )}
-            </div>
-            {uploadErrors.length > 0 && (
-              <div className="mt-2 text-sm text-red-600">
-                {uploadErrors.map((error, index) => (
-                  <div key={index}>{error.error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end gap-4 mt-6">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isUploading}
-              className={`px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {isUploading ? 'Uploading...' : editingProduct ? 'Update' : 'Create'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
 
   if (loading) {
     return (
@@ -448,7 +314,7 @@ const ProductsList: React.FC = () => {
                     <Pencil className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(product.id)}
+                    onClick={() => handleDelete(product._id!)}
                     className="text-red-600 hover:text-red-900"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -507,7 +373,19 @@ const ProductsList: React.FC = () => {
       </div>
 
       {/* Product Modal */}
-      {isModalOpen && <ProductModal />}
+      <ProductModal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        onSubmit={handleSubmit}
+        formData={formData}
+        setFormData={setFormData}
+        editingProduct={editingProduct}
+        imagePreviews={imagePreviews}
+        setImagePreviews={setImagePreviews}
+        uploadErrors={uploadErrors}
+        isUploading={isUploading}
+        handleImageChange={handleImageChange}
+      />
     </div>
   );
 };

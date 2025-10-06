@@ -5,6 +5,7 @@ import { getAllOrders, updateOrderStatus } from '../../api/admin';
 import { OrderDetails } from '../../interfaces/Order';
 
 interface Order {
+  _id: string;
   id: number;
   status: string;
   amount: number;
@@ -32,7 +33,6 @@ const OrdersList: React.FC = () => {
         startDate: dateRange.from,
         endDate: dateRange.to,
       });
-
       setOrders(response.orders);
       setTotalPages(response.totalPages);
     } catch (error) {
@@ -50,8 +50,9 @@ const OrdersList: React.FC = () => {
     return () => clearTimeout(debounceTimer);
   }, [page, filterCategory, dateRange.from, dateRange.to]);
 
-  const handleStatusUpdate = async (orderId: number, newStatus: string) => {
+  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
     try {
+      console.log(orderId);
       await updateOrderStatus(orderId, newStatus);
       toast.success('Order status updated successfully');
       loadOrders();
@@ -184,7 +185,7 @@ const OrdersList: React.FC = () => {
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <select
                     value={order.status}
-                    onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                    onChange={(e) => handleStatusUpdate(order._id, e.target.value)}
                     className="p-1 border rounded focus:ring-red-500 focus:border-red-500"
                   >
                     <option value="pending">Pending</option>
