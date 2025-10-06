@@ -22,25 +22,38 @@ const AdminDashboard: React.FC = () => {
 
   const loadStats = async () => {
     try {
+      // Get all orders without pagination to calculate total revenue
       const [ordersRes, usersRes, productsRes] = await Promise.all([
-        getAllOrders({ limit: 1 }),
+        getAllOrders({}), // Remove limit to get all orders
         getAllUsers({ limit: 1 }),
         getAllProducts({ limit: 1 }),
       ]);
 
-      const totalRevenue = ordersRes.orders.reduce((sum, order) => sum + order.amount, 0);
+      // Calculate total revenue with proper type checking
+      const totalRevenue = ordersRes.orders.reduce((sum, order) => {
+        const amount = Number(order.amount) || 0; // Convert to number and handle null/undefined
+        return sum + amount;
+      }, 0);
 
       setStats({
-        totalUsers: usersRes.total,
-        totalProducts: productsRes.total,
-        totalOrders: ordersRes.total,
-        totalRevenue,
+        totalUsers: usersRes.total || 0,
+        totalProducts: productsRes.total || 0,
+        totalOrders: ordersRes.total || 0,
+        totalRevenue: Number(totalRevenue.toFixed(2)) || 0, // Format to 2 decimal places
       });
     } catch (error) {
       console.error('Failed to load stats:', error);
+      // Set default values in case of error
+      setStats({
+        totalUsers: 0,
+        totalProducts: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+      });
     }
   };
 
+  // Update the revenue display to format the number
   const StatsSection = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div className="bg-white p-6 rounded-lg shadow">
@@ -75,7 +88,13 @@ const AdminDashboard: React.FC = () => {
           <DollarSign className="h-12 w-12 text-red-600" />
           <div className="ml-4">
             <p className="text-sm font-medium text-gray-500">Total Revenue</p>
-            <p className="text-2xl font-semibold text-gray-900">${stats.totalRevenue}</p>
+            <p className="text-2xl font-semibold text-gray-900">
+              $
+              {stats.totalRevenue.toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </p>
           </div>
         </div>
       </div>
