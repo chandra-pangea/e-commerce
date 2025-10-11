@@ -29,9 +29,18 @@ const Checkout: React.FC = () => {
     }));
   };
 
+  const [loading, setLoading] = useState(true);
+
   const loadCart = async () => {
-    const { items, total } = await getCart();
-    setTotalAmount((total + 49).toFixed(2) as unknown as number);
+    try {
+      const { items, total } = await getCart();
+      setTotalAmount((total + 49).toFixed(2) as unknown as number);
+    } catch (error) {
+      toast.error('Failed to load cart details');
+      navigate('/cart');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,6 +59,39 @@ const Checkout: React.FC = () => {
   useEffect(() => {
     loadCart();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md animate-pulse">
+        <div className="h-8 w-48 bg-gray-200 rounded mb-6"></div>
+        <div className="mb-6">
+          <div className="h-6 w-32 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 w-40 bg-gray-200 rounded"></div>
+        </div>
+        <div className="space-y-4">
+          <div className="h-20 bg-gray-200 rounded"></div>
+          <div className="h-20 bg-gray-200 rounded"></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-20 bg-gray-200 rounded"></div>
+            <div className="h-20 bg-gray-200 rounded"></div>
+          </div>
+          <div className="h-12 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isProcessing) {
+    return (
+      <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600 mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Processing Payment</h2>
+          <p className="text-gray-600">Please wait while we process your payment...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-md mx-auto mt-8 p-6 bg-white rounded-lg shadow-md">

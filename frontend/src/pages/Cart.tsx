@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2, Package } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { getCart, updateCartItem, removeFromCart, CartItem } from '../api/cart';
 import { getAddresses, addAddress, updateAddress, setDefaultAddress } from '../api/address';
@@ -22,9 +22,11 @@ const Cart: React.FC = () => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({});
   const [havingDefaultAddress, setHavingDefaultAddress] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [addressForm, setAddressForm] = useState<Address>({
     street: '',
     city: '',
@@ -93,6 +95,7 @@ const Cart: React.FC = () => {
     }
 
     try {
+      setActionLoading((prev) => ({ ...prev, [`qty_${productId}`]: true }));
       const data = await updateCartItem(productId, newQuantity);
       if (!data) {
         return;
@@ -101,6 +104,8 @@ const Cart: React.FC = () => {
       setTotalAmount(Number(data?.total) || 0);
     } catch (err) {
       toast.error('Failed to update quantity');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [`qty_${productId}`]: false }));
     }
   };
 
@@ -109,6 +114,7 @@ const Cart: React.FC = () => {
       return;
     }
     try {
+      setActionLoading((prev) => ({ ...prev, [`remove_${productId}`]: true }));
       const data = await removeFromCart(productId);
       if (!data) {
         return;
@@ -118,12 +124,15 @@ const Cart: React.FC = () => {
       toast.success('Item removed from cart');
     } catch (err) {
       toast.error('Failed to remove item');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [`remove_${productId}`]: false }));
     }
   };
 
   const handleAddressSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      setActionLoading((prev) => ({ ...prev, saveAddress: true }));
       if (selectedAddress?._id) {
         await updateAddress(selectedAddress._id, addressForm);
         toast.success('Address updated');
@@ -132,9 +141,11 @@ const Cart: React.FC = () => {
         toast.success('Address added');
       }
       setShowAddressForm(false);
-      loadAddresses();
+      await loadAddresses();
     } catch (err) {
       toast.error('Failed to save address');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, saveAddress: false }));
     }
   };
 
@@ -157,11 +168,14 @@ const Cart: React.FC = () => {
       return;
     }
     try {
+      setActionLoading((prev) => ({ ...prev, [`default_${addr._id}`]: true }));
       await setDefaultAddress(addr._id);
-      loadAddresses();
+      await loadAddresses();
       toast.success('Default address updated');
     } catch (err) {
       toast.error('Failed to set default address');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [`default_${addr._id}`]: false }));
     }
   };
 
@@ -171,16 +185,17 @@ const Cart: React.FC = () => {
     }
 
     try {
+      setCheckoutLoading(true);
       const res = await createOrder(selectedAddress._id);
       if (!res?.success || !res?.data?.paymentLink) {
-        return toast.error('Failed to create order. Please try again.');
+        throw new Error('Failed to create order');
       }
 
       const orderId = res?.data?.orderId;
       const paymentLink = res?.data?.paymentLink;
 
       if (!orderId || !paymentLink) {
-        return toast.error('Missing order info');
+        throw new Error('Missing order info');
       }
 
       window.open(paymentLink, '_blank');
@@ -201,20 +216,77 @@ const Cart: React.FC = () => {
         elapsed += 5000;
         if (elapsed >= 5 * 60 * 1000) {
           clearInterval(interval);
+          setCheckoutLoading(false);
           toast.error('Payment status not updated. Please check your orders later.');
         }
       }, 5000);
     } catch (error) {
       console.error('Checkout error:', error);
       toast.error('Something went wrong during checkout');
+      setCheckoutLoading(false);
     }
   };
 
   if (loading) {
-    return <div className="p-6">Loading...</div>;
+    return (
+      <div className="max-w-6xl mx-auto mt-8 p-6">
+        <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mb-6"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Cart Items Loading Skeleton */}
+          <div className="lg:col-span-2 bg-white rounded-lg shadow-md divide-y">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="p-4 flex items-center">
+                <div className="w-24 h-24 bg-gray-200 rounded animate-pulse"></div>
+                <div className="ml-4 flex-grow">
+                  <div className="h-5 w-1/3 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="h-4 w-1/4 bg-gray-200 rounded animate-pulse mb-2"></div>
+                  <div className="flex items-center mt-2">
+                    <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                </div>
+                <div className="h-6 w-20 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            ))}
+          </div>
+
+          {/* Order Summary Loading Skeleton */}
+          <div className="lg:col-span-1 bg-white rounded-lg shadow-md p-6">
+            <div className="h-6 w-32 bg-gray-200 rounded animate-pulse mb-4"></div>
+            <div className="space-y-4 mb-6">
+              <div className="h-4 w-full bg-gray-200 rounded animate-pulse"></div>
+              <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+            </div>
+            <div className="border-t pt-4">
+              <div className="space-y-3">
+                <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-4 w-2/3 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-6 w-full bg-gray-200 rounded animate-pulse mt-4"></div>
+              </div>
+            </div>
+            <div className="h-10 w-full bg-gray-200 rounded animate-pulse mt-6"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
   if (!Array.isArray(cartItems) || cartItems.length === 0) {
-    return <div className="p-6">Your cart is empty</div>;
+    return (
+      <div className="max-w-6xl mx-auto mt-8 p-6 text-center">
+        <div className="bg-white rounded-lg shadow-md p-8">
+          <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Your cart is empty</h2>
+          <p className="text-gray-600 mb-6">
+            Looks like you haven&apos;t added any items to your cart yet.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="bg-red-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-red-700"
+          >
+            Continue Shopping
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -247,11 +319,23 @@ const Cart: React.FC = () => {
                           item?.product?.stock,
                         )
                       }
-                      disabled={!item?.product?._id || item?.quantity <= 1}
+                      disabled={
+                        !item?.product?._id ||
+                        item?.quantity <= 1 ||
+                        actionLoading[`qty_${item?.product?._id}`] ||
+                        actionLoading[`remove_${item?.product?._id}`]
+                      }
+                      className="disabled:opacity-50"
                     >
                       <Minus className="w-4 h-4" />
                     </button>
-                    <span className="mx-3 w-8 text-center">{item?.quantity || 0}</span>
+                    <span className="mx-3 w-8 text-center">
+                      {actionLoading[`qty_${item?.product?._id}`] ? (
+                        <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                      ) : (
+                        item?.quantity || 0
+                      )}
+                    </span>
                     <button
                       onClick={() =>
                         handleQuantityChange(
@@ -261,17 +345,27 @@ const Cart: React.FC = () => {
                         )
                       }
                       disabled={
-                        !item?.product?._id || item?.quantity >= (item?.product?.stock || 0)
+                        !item?.product?._id ||
+                        item?.quantity >= (item?.product?.stock || 0) ||
+                        actionLoading[`qty_${item?.product?._id}`] ||
+                        actionLoading[`remove_${item?.product?._id}`]
                       }
+                      className="disabled:opacity-50"
                     >
                       <Plus className="w-4 h-4" />
                     </button>
                     <button
                       onClick={() => handleRemoveItem(item?.product?._id)}
-                      className="ml-4 text-red-500"
-                      disabled={!item?.product?._id}
+                      className="ml-4 text-red-500 disabled:opacity-50"
+                      disabled={
+                        !item?.product?._id || actionLoading[`remove_${item?.product?._id}`]
+                      }
                     >
-                      <Trash2 className="w-5 h-5" />
+                      {actionLoading[`remove_${item?.product?._id}`] ? (
+                        <div className="w-5 h-5 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                      ) : (
+                        <Trash2 className="w-5 h-5" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -322,9 +416,17 @@ const Cart: React.FC = () => {
                     {!havingDefaultAddress && addr?._id && (
                       <button
                         onClick={() => handleSetDefaultAddress(addr)}
-                        className="text-sm text-blue-600 hover:underline"
+                        disabled={actionLoading[`default_${addr._id}`]}
+                        className="text-sm text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
                       >
-                        Set Default
+                        {actionLoading[`default_${addr._id}`] ? (
+                          <>
+                            <div className="w-3 h-3 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            Setting...
+                          </>
+                        ) : (
+                          'Set Default'
+                        )}
                       </button>
                     )}
                     {addr?.isDefault && <span className="text-sm text-green-600">Default</span>}
@@ -352,10 +454,17 @@ const Cart: React.FC = () => {
 
           <button
             onClick={handleCheckout}
-            disabled={!selectedAddress?._id}
-            className="w-full mt-6 bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedAddress?._id || checkoutLoading}
+            className="w-full mt-6 bg-red-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Proceed to Checkout
+            {checkoutLoading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Processing...
+              </>
+            ) : (
+              'Proceed to Checkout'
+            )}
           </button>
         </div>
       </div>
@@ -418,12 +527,34 @@ const Cart: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                  disabled={actionLoading.saveAddress}
+                  className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
-                  Save Address
+                  {actionLoading.saveAddress ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Address'
+                  )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Checkout Processing Overlay */}
+      {checkoutLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent mx-auto mb-4"></div>
+            <h3 className="text-lg font-semibold mb-2">Processing Checkout</h3>
+            <p className="text-gray-600">Please wait while we process your order...</p>
+            <p className="text-red-500 text-xs">
+              I am using cashfree sandbox environment so it will be loading
+            </p>
           </div>
         </div>
       )}

@@ -10,6 +10,7 @@ const Orders: React.FC = () => {
   const [orders, setOrders] = useState<OrderDetails[]>([]);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<{ [key: string]: boolean }>({});
 
   useEffect(() => {
     loadOrders();
@@ -35,11 +36,14 @@ const Orders: React.FC = () => {
       return;
     }
     try {
+      setActionLoading((prev) => ({ ...prev, [`cancel_${orderId}`]: true }));
       await cancelOrder(orderId);
       toast.success('Order cancelled successfully');
-      loadOrders();
+      await loadOrders();
     } catch (error) {
       toast.error('Failed to cancel order');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [`cancel_${orderId}`]: false }));
     }
   };
 
@@ -48,12 +52,15 @@ const Orders: React.FC = () => {
       return;
     }
     try {
+      setActionLoading((prev) => ({ ...prev, [`review_${selectedOrderId}`]: true }));
       await submitReview(selectedOrderId, review);
       toast.success('Thank you for your review!');
       setSelectedOrderId(null);
-      loadOrders();
+      await loadOrders();
     } catch (error) {
       toast.error('Failed to submit review');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [`review_${selectedOrderId}`]: false }));
     }
   };
 
@@ -84,10 +91,53 @@ const Orders: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-4xl w-full bg-white p-8 rounded-lg shadow-lg">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
-            <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-8 w-48 bg-gray-200 rounded animate-pulse mx-auto mb-6"></div>
+
+          <div className="space-y-6">
+            {[...Array(3)].map((_, index) => (
+              <div key={index} className="border rounded-lg p-6">
+                <div className="animate-pulse">
+                  {/* Order Header */}
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="space-y-2">
+                      <div className="h-6 w-32 bg-gray-200 rounded"></div>
+                      <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <div className="h-6 w-24 bg-gray-200 rounded-full"></div>
+                      <div className="h-6 w-20 bg-gray-200 rounded-full"></div>
+                    </div>
+                  </div>
+
+                  {/* Order Items */}
+                  <div className="space-y-4">
+                    {[...Array(2)].map((_, itemIndex) => (
+                      <div key={itemIndex} className="flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <div className="w-16 h-16 bg-gray-200 rounded"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 w-40 bg-gray-200 rounded"></div>
+                            <div className="h-4 w-24 bg-gray-200 rounded"></div>
+                          </div>
+                        </div>
+                        <div className="h-4 w-20 bg-gray-200 rounded"></div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Order Footer */}
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex justify-between items-center">
+                      <div className="h-5 w-32 bg-gray-200 rounded"></div>
+                      <div className="flex gap-4">
+                        <div className="h-8 w-24 bg-gray-200 rounded"></div>
+                        <div className="h-8 w-32 bg-gray-200 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -100,9 +150,16 @@ const Orders: React.FC = () => {
         <h2 className="text-2xl font-bold mb-6 text-red-700 text-center">My Orders</h2>
 
         {orders.length === 0 ? (
-          <div className="text-center py-8">
-            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No orders found</p>
+          <div className="text-center py-12">
+            <Package className="w-20 h-20 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">No Orders Yet</h3>
+            <p className="text-gray-600 mb-8">Looks like you haven&apos;t placed any orders yet.</p>
+            <Link
+              to="/"
+              className="inline-flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+            >
+              Start Shopping
+            </Link>
           </div>
         ) : (
           <div className="space-y-6">
@@ -157,19 +214,37 @@ const Orders: React.FC = () => {
                       {order.status === 'delivered' && !order.reviewed && (
                         <button
                           onClick={() => setSelectedOrderId(order._id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          disabled={actionLoading[`review_${order._id}`]}
+                          className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Star className="w-4 h-4" />
-                          Give Feedback
+                          {actionLoading[`review_${order._id}`] ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Submitting...
+                            </>
+                          ) : (
+                            <>
+                              <Star className="w-4 h-4" />
+                              Give Feedback
+                            </>
+                          )}
                         </button>
                       )}
 
                       {order.status === 'pending' && (
                         <button
                           onClick={() => handleCancelOrder(order._id)}
-                          className="text-red-600 hover:underline"
+                          disabled={actionLoading[`cancel_${order._id}`]}
+                          className="flex items-center gap-2 text-red-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          Cancel Order
+                          {actionLoading[`cancel_${order._id}`] ? (
+                            <>
+                              <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+                              Cancelling...
+                            </>
+                          ) : (
+                            'Cancel Order'
+                          )}
                         </button>
                       )}
                     </div>

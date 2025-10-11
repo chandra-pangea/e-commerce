@@ -14,13 +14,32 @@ const ProductDetails: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const { isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState({
+    addToCart: false,
+    buyNow: false,
+    wishlist: false,
+  });
 
   useEffect(() => {
-    if (id) {
-      console.log(id);
-      getProductDetails(id).then(setProduct);
-    }
-  }, [id]);
+    const loadProduct = async () => {
+      if (!id) {
+        return;
+      }
+      try {
+        setLoading(true);
+        const productData = await getProductDetails(id);
+        setProduct(productData);
+      } catch (error) {
+        toast.error('Failed to load product details');
+        navigate('/');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProduct();
+  }, [id, navigate]);
 
   const handleQuantityChange = (newQuantity: number) => {
     if (newQuantity >= 1 && newQuantity <= (product?.stock || 1)) {
@@ -28,13 +47,20 @@ const ProductDetails: React.FC = () => {
     }
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    addToCart(product._id, quantity);
-    toast.success('Added to cart!');
+    try {
+      setActionLoading((prev) => ({ ...prev, addToCart: true }));
+      await addToCart(product._id, quantity);
+      toast.success('Added to cart!');
+    } catch (error) {
+      toast.error('Failed to add to cart');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, addToCart: false }));
+    }
   };
 
   const handleBuyNow = async () => {
@@ -42,28 +68,66 @@ const ProductDetails: React.FC = () => {
       navigate('/login');
       return;
     }
-    await addToCart(product._id, quantity);
-    navigate('/cart');
+    try {
+      setActionLoading((prev) => ({ ...prev, buyNow: true }));
+      await addToCart(product._id, quantity);
+      navigate('/cart');
+    } catch (error) {
+      toast.error('Failed to process buy now');
+      setActionLoading((prev) => ({ ...prev, buyNow: false }));
+    }
   };
 
-  const handleWishlistToggle = () => {
+  const handleWishlistToggle = async () => {
     if (!isAuthenticated) {
       navigate('/login');
       return;
     }
-    if (isInWishlist) {
-      removeFromWishlist(product._id);
-    } else {
-      addToWishlist(product._id);
+    try {
+      setActionLoading((prev) => ({ ...prev, wishlist: true }));
+      if (isInWishlist) {
+        await removeFromWishlist(product._id);
+      } else {
+        await addToWishlist(product._id);
+      }
+      setIsInWishlist(!isInWishlist);
+      toast.success(isInWishlist ? 'Removed from wishlist!' : 'Added to wishlist!');
+    } catch (error) {
+      toast.error('Failed to update wishlist');
+    } finally {
+      setActionLoading((prev) => ({ ...prev, wishlist: false }));
     }
-    setIsInWishlist(!isInWishlist);
-    toast.success(isInWishlist ? 'Removed from wishlist!' : 'Added to wishlist!');
   };
 
-  if (!product) {
+  if (loading || !product) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="mb-6 w-24 h-8 bg-gray-200 rounded animate-pulse"></div>
+
+        <div className="bg-white rounded-xl shadow-lg p-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Image Skeleton */}
+          <div className="flex flex-col items-center justify-center bg-gray-50 rounded-lg p-8">
+            <div className="w-full h-[400px] bg-gray-200 rounded animate-pulse"></div>
+          </div>
+
+          {/* Details Skeleton */}
+          <div className="flex flex-col space-y-4">
+            <div className="flex justify-between">
+              <div className="h-8 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+              <div className="h-8 w-8 bg-gray-200 rounded-full animate-pulse"></div>
+            </div>
+            <div className="h-8 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-full animate-pulse"></div>
+            <div className="h-4 bg-gray-200 rounded w-3/4 animate-pulse"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+            <div className="h-12 bg-gray-200 rounded w-1/2 animate-pulse"></div>
+            <div className="mt-auto flex gap-4">
+              <div className="h-12 bg-gray-200 rounded flex-1 animate-pulse"></div>
+              <div className="h-12 bg-gray-200 rounded flex-1 animate-pulse"></div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -95,13 +159,18 @@ const ProductDetails: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900">{product.name}</h1>
             <button
               onClick={handleWishlistToggle}
-              className="p-2 rounded-full hover:bg-red-50 transition-colors duration-200"
+              disabled={actionLoading.wishlist}
+              className="p-2 rounded-full hover:bg-red-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Heart
-                className={`w-6 h-6 ${
-                  isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500'
-                }`}
-              />
+              {actionLoading.wishlist ? (
+                <div className="w-6 h-6 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Heart
+                  className={`w-6 h-6 ${
+                    isInWishlist ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500'
+                  }`}
+                />
+              )}
             </button>
           </div>
 
@@ -167,17 +236,31 @@ const ProductDetails: React.FC = () => {
           <div className="flex gap-4 mt-auto">
             <button
               onClick={handleAddToCart}
-              className="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={product.stock <= 0}
+              className="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={product.stock <= 0 || actionLoading.addToCart || actionLoading.buyNow}
             >
-              Add to Cart
+              {actionLoading.addToCart ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Adding...
+                </>
+              ) : (
+                'Add to Cart'
+              )}
             </button>
             <button
               onClick={handleBuyNow}
-              className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={product.stock <= 0}
+              className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              disabled={product.stock <= 0 || actionLoading.buyNow || actionLoading.addToCart}
             >
-              Buy Now
+              {actionLoading.buyNow ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Processing...
+                </>
+              ) : (
+                'Buy Now'
+              )}
             </button>
           </div>
         </div>
